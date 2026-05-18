@@ -1,11 +1,25 @@
 "use client";
 
+import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCents } from "@/lib/utils";
 import { logSpendAction, type LogSpendState } from "./actions";
+
+/**
+ * Return "YYYY-MM-DDTHH:MM" for the current moment, formatted in the
+ * BROWSER's local timezone (not UTC). The naive datetime-local input
+ * displays whatever string you give it as local time, so feeding it
+ * UTC-suffixed values causes a timezone-shift bug.
+ */
+function nowLocalForInput(): string {
+  const d = new Date();
+  const offsetMin = d.getTimezoneOffset();
+  // Shift to local, then drop seconds + tz suffix to fit datetime-local format
+  return new Date(d.getTime() - offsetMin * 60_000).toISOString().slice(0, 16);
+}
 
 const INITIAL: LogSpendState = {};
 
@@ -28,6 +42,13 @@ function SubmitButton() {
 
 export function LogSpendForm({ subs }: { subs: Sub[] }) {
   const [state, formAction] = useFormState(logSpendAction, INITIAL);
+  const [whenLocal, setWhenLocal] = useState(nowLocalForInput);
+
+  // Convert the local datetime string to a UTC ISO string for submission.
+  // Server's `new Date(iso)` will parse it correctly regardless of server
+  // timezone. Without this, a backdated spend was off by the user's UTC
+  // offset (server is UTC on Vercel; "yesterday 6pm EDT" got stored as UTC).
+  const occurredAtISO = whenLocal ? new Date(whenLocal).toISOString() : "";
 
   const byBucket = {
     spend: subs.filter((s) => s.bucketKind === "spend"),
@@ -101,8 +122,15 @@ export function LogSpendForm({ subs }: { subs: Sub[] }) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="occurred_at">When</Label>
-        <Input id="occurred_at" name="occurred_at" type="datetime-local" defaultValue={new Date().toISOString().slice(0, 16)} />
+        <Label htmlFor="occurred_at_local">When</Label>
+        <Input
+          id="occurred_at_local"
+          type="datetime-local"
+          value={whenLocal}
+          onChange={(e) => setWhenLocal(e.target.value)}
+        />
+        {/* Hidden field carries the UTC-ISO so the server reads an unambiguous instant. */}
+        <input type="hidden" name="occurred_at" value={occurredAtISO} />
       </div>
 
       {state.error ? (

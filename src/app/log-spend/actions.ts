@@ -40,35 +40,41 @@ export async function logSpendAction(
 
   await requireUser();
   const supabase = await createClient();
-
-  // Look up the sub to find its bucket + piggybank, AND check balance for underflow.
-  const { data: sub } = await supabase
-    .from("subcategory")
-    .select("id, display_name, bucket_id, piggybank_id, balance_cents, archived_at")
-    .eq("id", parsed.data.subcategory_id)
-    .maybeSingle();
-  if (!sub) return { error: "Subcategory not found." };
-  if (sub.archived_at) return { error: "That subcategory is archived." };
-
   const amountCents = dollarsToCents(parsed.data.amount_dollars);
-  if ((sub.balance_cents ?? 0) < amountCents) {
-    return {
-      error: `Not enough in "${sub.display_name}" — has ${(sub.balance_cents ?? 0) / 100} ($), tried to spend ${amountCents / 100}.`,
-    };
-  }
 
-  const { error } = await supabase.from("transaction").insert({
-    piggybank_id: sub.piggybank_id,
-    kind: "spend",
-    amount_cents: amountCents,
-    bucket_id: sub.bucket_id,
-    subcategory_id: sub.id,
-    note: parsed.data.note ?? null,
-    occurred_at: parsed.data.occurred_at || new Date().toISOString(),
+  // log_spend RPC takes SELECT ... FOR UPDATE on the subcategory row,
+  // serializing concurrent spends so a race can't oversubtract.
+  // RPC raises a friendly exception on archived sub / insufficient balance /
+  // missing sub; we surface those messages directly.
+  const { error } = await supabase.rpc("log_spend", {
+    p_subcategory_id: parsed.data.subcategory_id,
+    p_amount_cents: amountCents,
+    p_note: parsed.data.note ?? null,
+    p_occurred_at: parsed.data.occurred_at || null,
   });
 
   if (error) {
     console.error("logSpendAction", error.message);
+    const msg = error.message || "";
+    if (/insufficient balance/i.test(msg)) {
+      // Format the cents in the RPC message back to dollars for the user.
+      const m = msg.match(/in "([^"]+)" — has (\d+) cents, tried to spend (\d+) cents/);
+      if (m) {
+        const subName = m[1];
+        const have = (Number(m[2]) / 100).toFixed(2);
+        const want = (Number(m[3]) / 100).toFixed(2);
+        return {
+          error: `Not enough in "${subName}" — has $${have}, tried to spend $${want}.`,
+        };
+      }
+      return { error: "Not enough balance for that spend." };
+    }
+    if (/is archived/i.test(msg)) {
+      return { error: "That subcategory is archived." };
+    }
+    if (/not found/i.test(msg)) {
+      return { error: "Subcategory not found." };
+    }
     return { error: "Couldn't record the spend. Please try again." };
   }
 

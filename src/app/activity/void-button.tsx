@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import {
   Dialog,
@@ -37,9 +37,11 @@ export function VoidButton({ transactionId, isVoided, rowSummary }: Props) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useFormState(voidTransactionAction, INITIAL);
 
-  if (state.success && open) {
-    setOpen(false);
-  }
+  // Close the dialog after a successful void. Done in an effect (not during
+  // render) to avoid React's setState-during-render warning.
+  useEffect(() => {
+    if (state.success) setOpen(false);
+  }, [state.success]);
 
   if (isVoided) {
     return (

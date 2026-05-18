@@ -685,6 +685,15 @@ export type Database = {
         }
         Returns: string
       }
+      log_spend: {
+        Args: {
+          p_amount_cents: number
+          p_note?: string
+          p_occurred_at?: string
+          p_subcategory_id: string
+        }
+        Returns: string
+      }
       signed_amount: {
         Args: { p_amount: number; p_kind: string }
         Returns: number
