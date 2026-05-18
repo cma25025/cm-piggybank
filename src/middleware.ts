@@ -1,10 +1,16 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+/** Routes any visitor can hit without an active session. */
+const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot-password", "/reset-password"];
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.includes(pathname);
+}
+
 /**
- * Middleware: refresh Supabase auth cookies on every request. Phase 2 will
- * add route protection (redirect unauthenticated users to /login). For now
- * we only keep the session alive so future protected routes work.
+ * Middleware: refresh Supabase auth cookies on every request and redirect
+ * unauthenticated visitors to /login when they touch a protected route.
  */
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -28,7 +34,15 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user && !isPublicPath(request.nextUrl.pathname)) {
+    const redirectUrl = new URL("/login", request.url);
+    redirectUrl.searchParams.set("next", request.nextUrl.pathname);
+    return NextResponse.redirect(redirectUrl);
+  }
 
   return supabaseResponse;
 }
