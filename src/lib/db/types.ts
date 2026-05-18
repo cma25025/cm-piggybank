@@ -525,6 +525,8 @@ export type Database = {
           piggybank_id: string
           source_type: string | null
           subcategory_id: string | null
+          voided_at: string | null
+          voided_by_user_id: string | null
         }
         Insert: {
           amount_cents: number
@@ -541,6 +543,8 @@ export type Database = {
           piggybank_id: string
           source_type?: string | null
           subcategory_id?: string | null
+          voided_at?: string | null
+          voided_by_user_id?: string | null
         }
         Update: {
           amount_cents?: number
@@ -557,6 +561,8 @@ export type Database = {
           piggybank_id?: string
           source_type?: string | null
           subcategory_id?: string | null
+          voided_at?: string | null
+          voided_by_user_id?: string | null
         }
         Relationships: [
           {
