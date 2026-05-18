@@ -1,3 +1,54 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,800&family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    /* Warm off-white background (kitchens aren't gray) */
+    --background: 30 50% 97%;          /* #FDF8F4 */
+    --foreground: 285 5% 17%;          /* #2D2A2E ink */
+
+    --card: 0 0% 100%;
+    --card-foreground: 285 5% 17%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 285 5% 17%;
+
+    /* Primary = brand rose */
+    --primary: 3 87% 66%;              /* #F4655E */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 30 30% 94%;           /* warm secondary surface */
+    --secondary-foreground: 285 5% 17%;
+
+    --muted: 30 30% 94%;
+    --muted-foreground: 285 4% 47%;    /* #76717A */
+
+    --accent: 3 75% 94%;               /* #FDE7E4 brand-soft */
+    --accent-foreground: 0 56% 50%;    /* #C73D36 brand-deep */
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 30 30% 89%;              /* #EBE4DC */
+    --input: 30 30% 89%;
+    --ring: 3 87% 66%;                 /* brand rose for focus */
+
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  .tnum {
+    font-feature-settings: "tnum" 1;
+  }
+}
