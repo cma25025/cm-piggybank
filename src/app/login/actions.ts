@@ -40,6 +40,15 @@ export async function loginAction(
   }
 
   const nextParam = formData.get("next");
-  const next = typeof nextParam === "string" && nextParam.startsWith("/") ? nextParam : "/dashboard";
+  // Validate strictly: must start with single "/" and not "//" (open-redirect
+  // protection — `//evil.com` is a valid absolute-protocol-relative URL that
+  // bypasses startsWith("/") alone).
+  const next =
+    typeof nextParam === "string" &&
+    nextParam.startsWith("/") &&
+    !nextParam.startsWith("//") &&
+    !nextParam.startsWith("/\\")
+      ? nextParam
+      : "/dashboard";
   redirect(next);
 }

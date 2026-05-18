@@ -36,7 +36,9 @@ export async function signupAction(
 
   if (error) {
     console.error("signupAction", error.message);
-    return { error: error.message };
+    // Uniform error: don't leak whether the email is already registered
+    // (would enable account enumeration via the signup form).
+    return { error: "Couldn't create the account. Try a different email or sign in." };
   }
 
   // Email confirmation is disabled in beta (Supabase Auth → Email Confirmations

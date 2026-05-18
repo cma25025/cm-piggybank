@@ -21,10 +21,14 @@ export async function forgotPasswordAction(
 
   const supabase = await createClient();
   const hdrs = await headers();
-  const origin = hdrs.get("origin") ?? hdrs.get("host") ? `https://${hdrs.get("host")}` : "";
+  // Operator precedence: previous version was `(origin ?? host) ? https://${host} : ""`
+  // which always used host even when origin was set. Rewrite explicitly.
+  const originHdr = hdrs.get("origin");
+  const hostHdr = hdrs.get("host");
+  const baseUrl = originHdr ?? (hostHdr ? `https://${hostHdr}` : "");
 
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: `${origin}/auth/callback?next=/reset-password`,
+    redirectTo: `${baseUrl}/auth/callback?next=/reset-password`,
   });
 
   if (error) {

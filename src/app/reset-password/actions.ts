@@ -27,7 +27,28 @@ export async function resetPasswordAction(
   }
 
   const supabase = await createClient();
-  // The reset link's callback established a session; updateUser uses it.
+
+  // Verify the session was established by a recovery (reset link) flow, not
+  // a normal login. Supabase exposes the auth method via the user's amr
+  // (authentication-methods-references) claim; "recovery" is the marker.
+  // Without this check, any logged-in user could rotate their own password
+  // without re-authenticating (stolen-laptop risk).
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "Reset link expired. Request a new one from the login screen." };
+  }
+  const amr = (user.app_metadata?.provider as string | undefined) ?? "";
+  const amrEntries = (user as { amr?: { method?: string }[] }).amr ?? [];
+  const isRecoverySession =
+    amrEntries.some((e) => e.method === "recovery") || amr === "recovery";
+  if (!isRecoverySession) {
+    return {
+      error: "This password reset is no longer active. Please request a new reset link.",
+    };
+  }
+
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
 
   if (error) {
@@ -35,5 +56,7 @@ export async function resetPasswordAction(
     return { error: error.message };
   }
 
-  redirect("/dashboard");
+  // Sign out so subsequent sessions require fresh login with the new password.
+  await supabase.auth.signOut();
+  redirect("/login?reset=ok");
 }
