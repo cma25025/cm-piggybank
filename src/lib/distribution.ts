@@ -23,13 +23,27 @@ export interface Distribution {
 const TOTAL_BPS = 10_000;
 
 export function computeDistribution(amount_cents: number, rule: DistributionRule): Distribution {
-  if (!Number.isInteger(amount_cents)) {
-    throw new Error(`amount_cents must be an integer, got ${amount_cents}`);
+  if (!Number.isFinite(amount_cents) || !Number.isInteger(amount_cents)) {
+    throw new Error(`amount_cents must be a finite integer, got ${amount_cents}`);
   }
+  // Zero is rejected: a $0 "deposit" is nonsense and would slip through balance
+  // math silently. Negative deposits are rejected at the data-model boundary.
   if (amount_cents <= 0) {
     throw new Error(`amount_cents must be > 0, got ${amount_cents}`);
   }
   const { spend_bps, save_bps, share_bps } = rule;
+  if (
+    !Number.isInteger(spend_bps) ||
+    !Number.isInteger(save_bps) ||
+    !Number.isInteger(share_bps) ||
+    spend_bps < 0 ||
+    save_bps < 0 ||
+    share_bps < 0
+  ) {
+    throw new Error(
+      `rule bps must be non-negative integers, got ${JSON.stringify(rule)}`,
+    );
+  }
   if (spend_bps + save_bps + share_bps !== TOTAL_BPS) {
     throw new Error(
       `rule bps must sum to ${TOTAL_BPS}, got ${spend_bps + save_bps + share_bps}`,
