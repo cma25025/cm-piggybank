@@ -1,7 +1,7 @@
 # Next Session — Handoff for the Next Claude Code
 
-**Last updated:** 2026-05-18 — commit `79386f7` (+ home-page fix coming next commit)
-**Current state:** Phases 0–5 + hotfixes shipped and pushed. Production on Vercel. Schema live in Supabase.
+**Last updated:** 2026-05-18 — through Phase 5 re-audit fixes (void lineage, etc.)
+**Current state:** Phases 0–5 + 4 audit-fix passes shipped. Production on Vercel. Schema live in Supabase (4 migrations). Phase 6-9 specs ready in `docs/PHASE-6-9-SPEC.md`.
 
 ---
 
@@ -35,6 +35,8 @@ c719fa2  Phase 3: onboarding wizard (4 steps with Y-fork)
 da86900  Phase 5: Add Money + Log Spend + Void
 fdbce4a  Append Phase 5 self-review findings to polish-todo
 79386f7  Phase 5 hotfix: spend FOR-UPDATE RPC + void useEffect + timezone fix
+c0a5d02  Add NEXT-SESSION.md handoff + fix landing page CTA
+[next]   Phase 5.6: void lineage column + activity filter + re-audit small fixes
 ```
 
 ---
@@ -113,7 +115,13 @@ Paste this into a new session:
 | 8. Sunday digest | ⏳ next | uses `Dashboard.ctaRow` slot |
 | 9. Settings + JSON export + soft-delete UI | ⏳ next | |
 
-Detailed specs land in `docs/PHASE-6-9-SPEC.md` (background subagent generating now).
+Detailed specs are in **`docs/PHASE-6-9-SPEC.md`** — concrete file lists, schema queries, dashboard slot integration, acceptance criteria, footguns. Read it before starting Phase 6.
+
+**Spec highlights to know about going in:**
+- **Phase 6** stat queries must filter `parent_id IS NULL AND kind='deposit'` to avoid triple-counting children. `FunderWidget` returns `null` when empty so the dashboard slot collapses.
+- **Phase 7** requires a CHECK constraint relaxation migration on `transaction.amount_sign_rules` to allow zero-diff reconciliations (jar matched the app).
+- **Phase 8** Sunday digest bypasses `v_weekly_digest` because Postgres `date_trunc('week', ...)` is Mon-Sun but the product framing is Sun-Sat. Custom JS week bounds + optional `?tz=` for caretaker timezone.
+- **Phase 9** bundles all carried-forward polish-todo fixes into one safety migration (unique on `kid_profile`, etc) — pre-flight checks documented in the spec to avoid migration failure on existing beta data.
 
 ---
 
@@ -129,7 +137,7 @@ Detailed specs land in `docs/PHASE-6-9-SPEC.md` (background subagent generating 
 **UX papercuts before broader beta:**
 - Hardcoded emoji selects (Phase 3 onboarding step-1, Phase 4 sub-add) — 8 / 12 options.
 - Subcategory rename not implemented (only add + archive).
-- Voided-parent-deposit's adjustment rows render as orphan rows in `/activity` (the parent + children are hidden; the offsetting adjustments are visible without context).
+- ✅ ~~Voided-parent-deposit's adjustment rows render as orphan rows in `/activity`~~ — FIXED in Phase 5.6 via `reversed_transaction_id` column + activity filter.
 
 **Architectural:**
 - `getDashboardData()` makes 4 round-trips per dashboard render; `AppShell` re-fetches piggybank on every nav. `React.cache()` would dedupe.
@@ -204,7 +212,15 @@ From Eng review:
 
 ## What I'd attack first next session
 
-1. **Wait for both background subagents** (Phase 5 re-audit + Phase 6-9 spec) to land in polish-todo / PHASE-6-9-SPEC.md
-2. **Triage any new P0s** from the re-audit
-3. **Phase 6 — Funders** (next sidebar item, fills dashboard widgets slot, uses already-shipped `v_funder_stats` view)
-4. **OR Live-DB test harness** if you want to invest in compounding signal before more features
+Both background subagents from the prior session landed and their outputs are committed:
+- Phase 5 re-audit → `docs/polish-todo.md` (the void lineage P1 it caught is already FIXED in Phase 5.6)
+- Phase 6-9 specs → `docs/PHASE-6-9-SPEC.md`
+
+So:
+
+1. **Read `docs/PHASE-6-9-SPEC.md` Phase 6 section.** It has the file list, queries, slot integration pattern.
+2. **Build Phase 6 — Funders.** ~30-60 min. Replace `src/app/funders/page.tsx` placeholder with the real list + per-funder detail + `FunderWidget` for the dashboard slot. Uses already-shipped `v_funder_stats` view.
+3. **Dispatch fresh Phase 6 audit subagent in background** as the commit lands. Same pattern as Phases 1-5.
+4. **OR Live-DB test harness** if you want to invest in compounding signal before more features. Bigger lift but unblocks all the deferred Vitest work.
+
+After Phase 6, Phases 7 + 8 can ship in parallel worktrees per the v1 plan §8 (parallel-safe; each fills a different dashboard slot). Phase 9 is the cleanup + polish phase.

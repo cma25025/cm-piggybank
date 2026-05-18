@@ -41,16 +41,19 @@ export default async function ActivityPage({
     .maybeSingle();
   if (!piggybank) redirect("/onboarding/step-1");
 
-  // Default view: hide deposit-child rows (parent_id IS NOT NULL) so each
-  // deposit shows as one summary row instead of 4 (parent + 3 children).
-  // The bucket filter below switches to children rows for per-bucket
-  // visibility (a deposit's parent has bucket_id=NULL).
+  // Default view: hide deposit-child rows (parent_id IS NOT NULL) AND
+  // hide void-reversal adjustments (reversed_transaction_id IS NOT NULL).
+  // Without the reversal filter, voiding a deposit produces 3 orphan
+  // "Voided deposit X: reason" rows because they have parent_id NULL.
+  // The voided original row stays visible with the strikethrough + Voided
+  // badge — that's the user-facing signal something happened.
   let query = supabase
     .from("transaction")
     .select(
-      "id, kind, amount_cents, occurred_at, note, parent_id, source_type, voided_at, bucket(kind), subcategory(display_name, emoji), funder(display_name)",
+      "id, kind, amount_cents, occurred_at, note, parent_id, source_type, voided_at, reversed_transaction_id, bucket(kind), subcategory(display_name, emoji), funder(display_name)",
     )
     .eq("piggybank_id", piggybank.id)
+    .is("reversed_transaction_id", null)
     .order("occurred_at", { ascending: false })
     .limit(PAGE_SIZE);
 

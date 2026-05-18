@@ -523,6 +523,7 @@ export type Database = {
           occurred_at: string
           parent_id: string | null
           piggybank_id: string
+          reversed_transaction_id: string | null
           source_type: string | null
           subcategory_id: string | null
           voided_at: string | null
@@ -541,6 +542,7 @@ export type Database = {
           occurred_at?: string
           parent_id?: string | null
           piggybank_id: string
+          reversed_transaction_id?: string | null
           source_type?: string | null
           subcategory_id?: string | null
           voided_at?: string | null
@@ -559,6 +561,7 @@ export type Database = {
           occurred_at?: string
           parent_id?: string | null
           piggybank_id?: string
+          reversed_transaction_id?: string | null
           source_type?: string | null
           subcategory_id?: string | null
           voided_at?: string | null
@@ -598,6 +601,13 @@ export type Database = {
             columns: ["piggybank_id"]
             isOneToOne: false
             referencedRelation: "piggybank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_reversed_transaction_id_fkey"
+            columns: ["reversed_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transaction"
             referencedColumns: ["id"]
           },
           {

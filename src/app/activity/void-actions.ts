@@ -32,7 +32,13 @@ export async function voidTransactionAction(
 
   if (error) {
     console.error("voidTransactionAction", error.message);
-    return { error: error.message.includes("already voided") ? "Already voided." : "Couldn't void the transaction." };
+    const msg = error.message || "";
+    if (/already voided/i.test(msg)) return { error: "Already voided." };
+    if (/cannot void an adjustment/i.test(msg)) {
+      return { error: "Adjustments can't be voided directly. Void the original transaction instead." };
+    }
+    if (/not found/i.test(msg)) return { error: "Transaction not found." };
+    return { error: "Couldn't void the transaction." };
   }
 
   revalidatePath("/activity");

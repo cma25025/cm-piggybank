@@ -97,5 +97,8 @@ export async function addMoneyAction(
 
   revalidatePath("/dashboard");
   revalidatePath("/activity");
+  revalidatePath("/buckets/spend");
+  revalidatePath("/buckets/save");
+  revalidatePath("/buckets/share");
   redirect("/dashboard");
 }
