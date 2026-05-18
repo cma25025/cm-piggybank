@@ -1,8 +1,8 @@
 # CM Piggybank — v1 Implementation Plan
 
-**Status:** Draft v2 · post `/plan-eng-review`
+**Status:** Draft v3 · post Eng review + outside voice
 **Date:** May 2026
-**Estimated duration:** ~14–19 working days (~3–4 weeks of focused build, ~3 weeks if Phases 6/7/8 parallelize)
+**Estimated duration:** ~14–19 working days sequential, ~11–15 with Lanes A/B/C parallelizing Phases 6/7/8
 
 ## 1. Context
 
@@ -10,41 +10,49 @@
 - **Target-state mockup:** `~/Downloads/piggybankmockuptargetstate.html`
 - **Scope path:** Path A (Spreadsheet-killer, slim ship, target-state-ready schema)
 - **Strategic constraint:** zero ongoing cost during beta
-- **Current repo state:** v0 prototype (single-user flat schema) will be **fully discarded**; `.git` history preserved as documentation of the prototype phase
-- **Code home:** GitHub `cma25025/cm-piggybank`, Vercel project `cm-piggybank` (id `prj_ivgoHOYF2cSqYazxECU7Th0SBvQ7`), Supabase project `supabase-fulvous-arrow` (ref `scuxpypcxwlyyfgovncf`) — all linked
+- **Current repo state:** v0 prototype (single-user flat schema) will be **fully discarded**; `.git` history preserved
+- **Code home:** GitHub `cma25025/cm-piggybank`, Vercel `cm-piggybank` (`prj_ivgoHOYF2cSqYazxECU7Th0SBvQ7`), Supabase `supabase-fulvous-arrow` (`scuxpypcxwlyyfgovncf`) — all linked
 
-This plan replaces the v0 codebase entirely. It is sequenced for **shortest-path-to-beta** — each phase produces something that can be demoed to beta caretakers, so the build can stop early if signal demands a pivot.
+This plan replaces the v0 codebase entirely. Sequenced for **shortest-path-to-beta** — each phase produces something a beta caretaker could use, so the build can stop early if signal demands a pivot.
 
 ## 2. Locked decisions
 
 ### Product (from CEO review)
-| # | Decision | Source |
-|---|---|---|
-| 1 | Default split: 60/20/20 Spend/Save/Share | CEO review §1 |
-| 2 | APR: credited + caretaker-confirms; nudge at ≥$1.00 accrued; manual "pay out now" bonus action | CEO review §2 |
-| 3 | v1 UI: full caretaker sidebar with "coming soon" badges + one-line placeholders | CEO review §3 |
-| 4 | Reconciliation: weekly nudge + manual override | CEO review §4 |
-| 5 | Onboarding: 4-step wizard with Y-fork at step 4 (fresh deposit OR opening balances) | CEO review §5 |
-| 5b | Subcategories visible in v1 UI; defaults seeded; spends categorized at log time | CEO review §5b |
-| 6 | Funders: top-level sidebar item, dedicated screen, per-funder stats, picker in deposit flow | CEO review §6 |
-| 7 | Sunday digest: ships in v1 as caretaker-printable artifact | CEO review §7 |
-| 8 | Threat-model prep: audit cols + owner_pin_hash + COPPA trigger comment | CEO review §8 |
+| # | Decision |
+|---|---|
+| C1 | Default split: 60/20/20 Spend/Save/Share |
+| C2 | APR: credited + caretaker-confirms; nudge at ≥$1.00 accrued; manual "pay out now" bonus action |
+| C3 | v1 UI: full caretaker sidebar with "coming soon" badges + one-line placeholders |
+| C4 | Reconciliation: weekly nudge + manual override |
+| C5 | Onboarding: 4-step wizard with Y-fork at step 4 (fresh deposit OR opening balances) |
+| C5b | Subcategories visible in v1 UI; defaults seeded; spends categorized at log time |
+| C6 | Funders: top-level sidebar item, dedicated screen, per-funder stats, picker in deposit flow |
+| C7 | Sunday digest: ships in v1 as caretaker-printable artifact |
+| C8 | Threat-model prep: audit cols + owner_pin_hash + COPPA trigger comment |
 
-### Architecture (from Eng review)
-| # | Decision | Source |
-|---|---|---|
-| E1 | **Drop Drizzle.** Use `@supabase/ssr` + `supabase-js` + generated types. Schema in SQL files; RLS works automatically because the client carries the JWT | Eng review §1 |
-| E2 | **Deposit data model: parent + child transactions.** Parent carries funder/source/note (`bucket_id=NULL`); children carry per-bucket assignment | Eng review §2 |
-| E3 | **Triggers handle INSERT + UPDATE + DELETE** on `transaction` (not just INSERT) so corrections and reconciliations maintain invariants | Eng review §3 |
-| E4 | **Denormalize `caretaker_user_id` on every domain table** from day 1 + insert triggers to auto-populate from parent piggybank. RLS becomes single-column index lookup | Eng review §4 |
-| E5 | **Onboarding step 1 atomicity:** wrapped in a single Postgres RPC (`create_piggybank_with_defaults`) so the 11+ inserts are atomic | Eng review §5 |
-| E6 | **Validation rules per `kind`** enforced in both Zod (server-action) and DB `CHECK` constraints | Eng review §6 |
-| E7 | **Rounding: Share gets the remainder cents** (pro-charity bias, documented in distribution function) | Eng review §7 |
-| E8 | **`integer` cents** (max $21M), not `bigint`. Saves JS BigInt conversion friction | Eng review §8 |
-| E9 | **Error logging via Vercel function logs + Supabase logs.** No PII (kid names, amounts, emails) in logs. Sentry deferred to v1.1 | Eng review §9 |
-| E10 | **Vitest for all server actions** (not just deposit math); skip Playwright in v1 | Eng review §10 |
-| E11 | **`/coming-soon/[feature]`** as a single parameterized route reading a feature manifest | Eng review §11 |
-| E12 | **Hard delete on piggybank** with explicit `ON DELETE CASCADE` chains | Eng review §12 |
+### Architecture (from Eng review + outside voice)
+| # | Decision |
+|---|---|
+| E1 | Drop Drizzle. Use `@supabase/ssr` + `supabase-js` + generated types. Schema in SQL files; RLS works automatically |
+| E2 | Deposit data model: parent + child transactions |
+| E3 | Triggers handle INSERT + UPDATE + DELETE on `transaction` |
+| E4 | Denormalize `caretaker_user_id` on every domain table; insert triggers auto-populate from parent piggybank |
+| E5 | Onboarding step 1 atomicity via single Postgres RPC (`create_piggybank_with_defaults`) |
+| E6 | Validation rules per `kind` enforced in both Zod and DB CHECK constraints |
+| E7 | Rounding: Share gets remainder cents (pro-charity bias) |
+| E8 | `integer` cents per-row; `bigint` on balance counters (overflow-safe for v2 analytics) |
+| E9 | Error logging via Vercel + Supabase logs; no PII; Sentry deferred to v1.1 |
+| E10 | Vitest for all server actions; skip Playwright in v1 |
+| E11 | `/coming-soon/[feature]` parameterized route reading feature manifest |
+| E12 | **Soft delete piggybank** (`deleted_at`) + 30-day purge cron; misclick-safe for beta |
+| **OV1** | `transaction.parent_id` FK is `DEFERRABLE INITIALLY DEFERRED` + Vitest for non-obvious insertion order |
+| **OV2** | Propagation trigger marked `SECURITY DEFINER` + `SET search_path = ''` + Vitest under real caretaker JWT |
+| **OV3** | Void-transaction action ships in Phase 5 (writes offsetting `kind='adjustment'`); edit deferred to v1.1 |
+| **OV4** | Subcategory archive rejected if `balance_cents != 0` with helpful error |
+| **OV6** | Funder find-or-create via dedicated `find_or_create_funder(name, relationship)` SQL function with case-insensitive `lower(display_name)` partial unique index |
+| **OV7** | Dashboard ships **named slot contract** in Phase 4 (`banner`, `cta-row`, `widgets`) so Phases 6/7/8 truly parallelize |
+| **OV9** | Skip analytics tracking in v1; manual signal from co-devs; add Vercel Analytics events before public launch |
+| **OV12** | Settings → "Export my data" (JSON) + surfaced on delete-confirm modal |
 
 ### Stack
 | Layer | Choice | Notes |
@@ -53,39 +61,42 @@ This plan replaces the v0 codebase entirely. It is sequenced for **shortest-path
 | DB / Auth | Supabase (Free tier) | $0 |
 | Framework | Next.js 14 App Router + Server Actions | |
 | Language | TypeScript strict | |
-| DB client | `@supabase/ssr` + `@supabase/supabase-js` | Schema lives in `supabase/migrations/*.sql`; types via `supabase gen types typescript --linked > src/lib/db/types.ts` |
-| Aggregations | SQL views (`v_funder_stats`, `v_weekly_digest`) | Queried via Supabase nested select |
-| Styling | Tailwind CSS extended with mockup tokens | |
+| DB client | `@supabase/ssr` + `@supabase/supabase-js` | Schema in `supabase/migrations/*.sql`; types via `supabase gen types typescript --linked > src/lib/db/types.ts` |
+| Aggregations | SQL views (`v_funder_stats`, `v_weekly_digest`) | |
+| Styling | Tailwind extended with mockup tokens | |
 | Components | shadcn/ui primitives + custom branded surfaces | |
-| Validation | Zod at server-action boundary + DB `CHECK` constraints | Defense in depth |
-| Auth | Email + password via Supabase email (no confirmation in beta) | Disable confirmation in Supabase dashboard |
-| Money | `integer` cents (max $21M) | All financial math has Vitest coverage |
+| Validation | Zod (server action) + DB CHECK constraints | |
+| Auth | Email + password via Supabase email (no confirmation in beta) | |
+| Money | `integer` cents per-row; `bigint` on balance counters | `Number()` at JS boundary for bigint reads |
 | Print | Native browser `@media print` | |
-| Analytics | Vercel Analytics (Hobby) | |
-| Logging | Vercel function logs + Supabase database logs | No PII in logs |
-| Tests | Vitest (unit + server-action coverage) | Playwright deferred to v1.1 |
+| Analytics | Deferred to public launch | Manual beta signal |
+| Logging | Vercel function logs + Supabase database logs | No PII |
+| Tests | Vitest | Playwright deferred to v1.1 |
 | Email service | Deferred — Resend swap before public launch | |
 
 ## 3. v1 scope
 
 ### Ships
 - 4-step onboarding wizard (kid profile → split → funders → starting state Y-fork)
-- Caretaker dashboard (total card, 3 bucket cards with sub breakdown, recent activity, Sunday digest CTA)
-- Bucket detail screens (sub list, manage subs)
-- Activity log (filter by bucket, sub, date range, source, funder)
+- Caretaker dashboard with **named slots** (composable for v1.1 widgets)
+- Bucket detail screens
+- Activity log (filterable; parent-row collapse with expand-to-children)
 - Funders screen (list, per-funder stats, add/edit/archive)
-- Settings (distribution rule edit, kid profile edit, password change, delete piggybank)
-- Add Money flow (funder picker, source, auto/manual distribution preview)
-- Log Spend flow (bucket → sub → note → date)
+- Settings (distribution rule, kid profile, password change, **soft delete piggybank**, **export JSON**)
+- Add Money flow (funder picker via `find_or_create_funder`, source, auto/manual distribution preview)
+- Log Spend flow
+- **Void Transaction action** (any txn row → void → writes offsetting adjustment)
 - Weekly reconciliation nudge + manual override
 - Sunday digest printable view
-- Sidebar "coming soon" placeholders for APR, Statements, Auto-allocation (single `/coming-soon/[feature]` route)
+- Sidebar "coming soon" placeholders (single `/coming-soon/[feature]` route)
 
 ### Schema-ready, UI hidden in v1
-- Owner UI (entire surface) — `kid_profile.owner_user_id`, `owner_pin_hash`, RLS hooks reserved
-- APR mechanism — `subcategory.apr_bps`, `unsettled_interest_cents` exist
-- Spend requests — `request` table exists, no submission flow
+- Owner UI — `kid_profile.owner_user_id`, `owner_pin_hash`, RLS hooks reserved
+- APR — `subcategory.apr_bps`, `unsettled_interest_cents` exist
+- Spend requests — `request` table exists
 - Multi-funder auth — `funder.user_id` nullable
+- Edit transaction — schema supports UPDATE; UI deferred to v1.1
+- Subcategory transfer — defer until archive-with-balance demands it
 
 ### Out of scope (explicit deferrals)
 - Owner UI (entire surface)
@@ -95,22 +106,24 @@ This plan replaces the v0 codebase entirely. It is sequenced for **shortest-path
 - Receipt OCR / photo attachments
 - Goal templates
 - Monthly / annual statements
-- Email notifications (digest is print-only; reconciliation is in-app banner)
-- **Drizzle ORM** (eng review §1)
-- **Playwright E2E** (eng review §10; manual QA + Vitest in v1)
-- **Sentry / error monitoring** (eng review §9; Vercel + Supabase logs only)
-- **Soft delete / archival on piggybank** (eng review §12; hard delete only)
-- **Caretaker rounding-bias preference** (eng review §7; Share fixed)
-- **`reconciliations` table** (eng review; one adjustment txn per event in v1; full table v1.1)
+- Email notifications (digest print-only; reconciliation in-app banner)
+- Drizzle ORM
+- Playwright E2E
+- Sentry / error monitoring
+- **Hard delete piggybank** (soft delete only)
+- **Edit transaction UI** (void-only in v1)
+- Caretaker rounding-bias preference (Share fixed)
+- `reconciliations` table (one adjustment txn per event)
+- Analytics tracking (instrumented before public launch)
 
 ## 4. Sequencing principles
 
-1. **Schema first.** Phase 1 is the foundation; locking it early lets all subsequent phases use real types.
-2. **Auth before any UI work.** No screen renders until there's a real user model.
-3. **Read paths before write paths.** Dashboard skeleton with seeded data, then enable mutations against it.
-4. **Money math gets Vitest from day 1.** Every distribution/balance/aggregation function is tested before its UI ships.
-5. **Each phase ends in a demoable state.** A beta caretaker could in principle use the system after any completed phase.
-6. **Phases 6/7/8 can parallelize after Phase 5** lands (see §10 worktree strategy).
+1. Schema first.
+2. Auth before any UI work.
+3. Read paths before write paths (dashboard skeleton with seed data, then mutations).
+4. Money math gets Vitest from day 1.
+5. Each phase ends in a demoable state.
+6. **Dashboard ships with named slots in Phase 4** so Phases 6/7/8 can land independently without merge conflicts.
 
 ## 5. Phases
 
@@ -123,59 +136,63 @@ This plan replaces the v0 codebase entirely. It is sequenced for **shortest-path
 - `npm install` adds: `zod`, `@hookform/resolvers`, `react-hook-form`, `vitest`, `@vitest/ui`, `happy-dom`
 - `npx shadcn-ui@latest init` with config matching mockup tokens
 - `npx shadcn-ui@latest add button input label dialog combobox select dropdown-menu toast form tabs separator card badge`
-- Extend `tailwind.config.ts`: brand rose `#F4655E`, bucket colors, off-white bg `#FDF8F4`, line `#EBE4DC`, fonts (Fraunces, Outfit, DM Sans)
-- `src/app/globals.css`: font imports, CSS variables matching mockup `:root`
-- Create skeleton: `src/lib/supabase/server.ts` + `src/lib/supabase/client.ts` (Auth-aware), `src/lib/utils.ts` (cn helper from shadcn), `src/lib/distribution.ts` (rounding math), `vitest.config.ts`
-- Add `package.json` scripts: `test`, `test:watch`, `db:types` (runs `supabase gen types typescript --linked > src/lib/db/types.ts`)
-- Verify: `npm run dev` boots a placeholder `/` page; `npm test` runs (zero tests, passes)
+- Extend `tailwind.config.ts` with brand tokens (rose, bucket colors, off-white, fonts)
+- `src/app/globals.css`: font imports, CSS variables
+- Skeleton: `src/lib/supabase/server.ts` + `client.ts`, `src/lib/utils.ts`, `src/lib/distribution.ts`, `vitest.config.ts`
+- `package.json` scripts: `test`, `test:watch`, `db:types`
 
-**Deliverable:** Empty Next.js app with all dependencies installed and design tokens wired.
-**Acceptance:** `npm run dev` starts, `npm run build` passes, `tsc --noEmit` passes, `npm test` runs.
+**Deliverable:** Empty app, all deps installed.
+**Acceptance:** `npm run dev` boots; `npm run build` passes; `tsc --noEmit` passes; `npm test` runs.
 **Effort:** ~2 hours.
 
 ---
 
 ### Phase 1 — Schema + migration + RLS + triggers
-**Goal:** Target-state DB schema live in Supabase, queryable via Supabase client, with auto-maintained balances and JWT-aware RLS.
+**Goal:** Target-state DB schema live in Supabase, queryable via Supabase client, with auto-maintained balances, JWT-aware RLS, soft-delete-safe queries.
 
 **Tasks:**
 - Write `supabase/migrations/<timestamp>_v1_initial.sql` with all tables:
-  - `kid_profile` (with `owner_user_id`, `owner_pin_hash`, `owner_auth_mode`, COPPA trigger comment)
-  - `piggybank` (with `caretaker_user_id` FK)
-  - `distribution_rule` (per piggybank, defaults to 6000/2000/2000 bps)
-  - `bucket` (3 per piggybank, kind ∈ spend/save/share)
-  - `subcategory` (with `apr_bps`, `unsettled_interest_cents`, `archived_at`)
-  - `funder` (with nullable `user_id` for v2)
-  - `transaction` (with `parent_id` self-FK, `kind` enum including all 6 values, `caretaker_user_id` denormalized)
-  - `request` (schema-ready, no v1 UI)
+  - `kid_profile` (audit cols, `owner_user_id`, `owner_pin_hash`, `owner_auth_mode`, COPPA trigger comment)
+  - `piggybank` (`caretaker_user_id` FK, **`deleted_at timestamptz`**)
+  - `distribution_rule` (defaults to 6000/2000/2000 bps)
+  - `bucket` (3 per piggybank, kind ∈ spend/save/share, `balance_cents bigint`)
+  - `subcategory` (`apr_bps`, `unsettled_interest_cents bigint`, `balance_cents bigint`, `archived_at`)
+  - `funder` (audit cols, nullable `user_id` for v2)
+  - `transaction` (`amount_cents integer`, `parent_id` self-FK **`DEFERRABLE INITIALLY DEFERRED`**, `kind` enum, denormalized `caretaker_user_id`)
+  - `request` (schema-ready)
 - **CHECK constraints:**
   - `transaction.parent_id IS NULL OR kind = 'deposit'`
-  - `transaction.kind = 'deposit' OR parent_id IS NULL` (only deposits have children)
-  - Per-kind amount sign rules: `(kind='spend' AND amount > 0) OR (kind IN ('deposit','interest') AND amount > 0) OR (kind='opening_balance' AND amount >= 0) OR (kind='adjustment')`
+  - Per-kind amount signs: `(kind='spend' AND amount_cents > 0) OR (kind IN ('deposit','interest') AND amount_cents > 0) OR (kind='opening_balance' AND amount_cents >= 0) OR (kind='adjustment')`
   - `distribution_rule.spend_bps + save_bps + share_bps = 10000`
-- **Denormalize `caretaker_user_id` on every domain table** + insert triggers to propagate from parent piggybank
-- **RLS policies** on every table: `caretaker_user_id = auth.uid()` (single-column index lookup)
-- **Triggers** maintaining `bucket.balance_cents`, `subcategory.balance_cents`, `piggybank.total_balance_cents` on transaction INSERT, UPDATE, AND DELETE
-  - Important: triggers operate only on rows with `bucket_id IS NOT NULL` (parent deposit rows are not summed; children are)
-- **Indexes:** `caretaker_user_id` on every table, `(piggybank_id, occurred_at DESC)` on transaction, `(funder_id, occurred_at DESC)` on transaction, `(bucket_id, occurred_at DESC)` on transaction
-- **SQL views:** `v_funder_stats` (total contributed, last contribution, # deposits per funder), `v_weekly_digest` (per-week aggregations)
-- **Postgres RPC:** `create_piggybank_with_defaults(name, age, emoji, distribution_bps)` — atomic creation of kid_profile + piggybank + 3 buckets + default subs + distribution_rule + primary funder
+- **Denormalize `caretaker_user_id`** on every domain table
+- **Propagation trigger** marked `SECURITY DEFINER` + `SET search_path = ''` that copies `caretaker_user_id` from parent piggybank on insert
+- **RLS policies** on every table: `caretaker_user_id = auth.uid()` (single-column index lookup); for `piggybank` the SELECT policy also enforces `deleted_at IS NULL` so soft-deleted rows are invisible to the app
+- **Sub-table reads of soft-deleted parent:** RLS on sub-tables filters by `caretaker_user_id` only (caretaker still owns the data). Application-layer queries that return rows tied to a piggybank join `piggybank` and apply `deleted_at IS NULL` filter. Document the pattern in `src/lib/db/queries.ts` helpers.
+- **Triggers** maintaining `bucket.balance_cents`, `subcategory.balance_cents`, `piggybank.total_balance_cents` on transaction INSERT/UPDATE/DELETE
+  - Triggers operate only on rows with `bucket_id IS NOT NULL` (parent deposit rows aren't summed; children are)
+- **Indexes:** `caretaker_user_id` on every table; `(piggybank_id, occurred_at DESC)` and `(funder_id, occurred_at DESC)` and `(bucket_id, occurred_at DESC)` on transaction
+- **Partial unique index:** `CREATE UNIQUE INDEX funder_name_per_piggybank_uq ON funder (piggybank_id, lower(display_name)) WHERE archived_at IS NULL`
+- **SQL views:** `v_funder_stats`, `v_weekly_digest` — cast aggregations to `bigint` to prevent overflow
+- **Postgres RPCs:**
+  - `create_piggybank_with_defaults(name, age, emoji, distribution_bps)` — atomic creation of kid_profile + piggybank + 3 buckets + default subs + distribution_rule + primary funder
+  - `add_deposit(piggybank_id, amount, funder_name, source_type, note, distribution)` — atomic parent + 3 child inserts inside `BEGIN ... COMMIT`; uses `find_or_create_funder` internally
+  - `find_or_create_funder(piggybank_id, display_name, relationship)` — SELECT existing (case-insensitive) → INSERT ON CONFLICT DO NOTHING → re-SELECT
+  - `void_transaction(transaction_id, reason)` — writes offsetting adjustment txn; original row stays
+  - `soft_delete_piggybank(piggybank_id)` — sets `deleted_at = now()`
 - Apply via `supabase db push`
-- `npm run db:types` → regenerate types
-- Write `src/lib/db/seed.ts` — creates one test caretaker + piggybank for local dev
+- `npm run db:types`
+- `src/lib/db/seed.ts` — local-dev test caretaker + piggybank
 - **Vitest tests:**
-  - `src/lib/db/__tests__/balance-invariants.test.ts` — for a random transaction sequence, assert `bucket.balance_cents = sum(child transactions where bucket_id = X)`
-  - `src/lib/db/__tests__/rls.test.ts` — caretaker A's session cannot SELECT caretaker B's data via Supabase client
-  - `src/lib/db/__tests__/cascade.test.ts` — deleting piggybank cascades to all children correctly
+  - `balance-invariants.test.ts` — random sequence of INSERT/UPDATE/DELETE/VOID, assert `bucket.balance_cents = sum(child txns)`, no orphans
+  - `rls.test.ts` — caretaker A's JWT cannot SELECT caretaker B's data; soft-deleted piggybank disappears from A's own queries
+  - `cascade.test.ts` — soft-delete piggybank hides it; hard-delete (via purge cron) cascades all children
+  - `fk-ordering.test.ts` — parent + children in non-obvious insertion order inside DEFERRABLE transaction succeeds
+  - `trigger-security.test.ts` — under real caretaker JWT, transaction insert succeeds and `caretaker_user_id` populates
+  - `funder-race.test.ts` — concurrent "grandma" / "Grandma" insertions produce one row (case-insensitive partial unique index works)
 
-**Deliverable:** All schema live in Supabase; RLS enforces caretaker isolation; balance triggers maintain invariants for all mutation kinds.
-**Acceptance:**
-- All tables exist with constraints
-- RLS test passes
-- Trigger test: insert/update/delete of child transaction correctly maintains bucket + piggybank totals
-- Vitest balance-invariants test passes for 100 random sequences including corrections
-- RPC creates all 11+ rows atomically (failure → no partial state)
-**Effort:** ~1.5 days (revised up from 1 day given trigger scope).
+**Deliverable:** All schema live; RLS enforces caretaker isolation including soft-delete invisibility; balance triggers maintain invariants for all mutation kinds; all RPCs work atomically.
+**Acceptance:** All 6 Vitest test files pass; manual smoke check that `create_piggybank_with_defaults` rolls back on any sub-insert failure.
+**Effort:** ~2 days (revised up from 1.5 — additional triggers, RPCs, and tests).
 
 ---
 
@@ -183,154 +200,160 @@ This plan replaces the v0 codebase entirely. It is sequenced for **shortest-path
 **Goal:** Caretaker can sign up, log in, log out, reset password.
 
 **Tasks:**
-- `/signup` page (email + password + confirm-password)
-- `/login` page (email + password)
-- `/forgot-password` page → Supabase reset email
-- `/reset-password` page (consumes reset link, sets new password)
+- `/signup`, `/login`, `/forgot-password`, `/reset-password` pages
 - `/auth/callback` route handler
-- `src/middleware.ts`: protect all app routes, redirect unauth to `/login`
+- `src/middleware.ts`: protect app routes, redirect unauth → `/login`
 - `/logout` server action
-- Manual: disable email confirmation in Supabase dashboard (Auth → Email Confirmations off) — document in `SETUP.md`
-- Configure Supabase email templates (password reset wording, beta-appropriate)
-- **Vitest:** signup/login server action validation (Zod rejection of bad inputs)
-- **Manual test:** signup → log in → log out → forgot → reset → log in with new password
+- Manual: disable email confirmation in Supabase dashboard
+- Configure Supabase email templates (beta-appropriate copy)
+- **Vitest:** signup/login validation
+- **Manual:** end-to-end signup → login → logout → forgot → reset
 
-**Deliverable:** New caretaker can sign up and recover a forgotten password.
-**Acceptance:** All flows work end-to-end; protected route redirects unauth → `/login`; RLS confirmed via cross-account API test.
+**Deliverable:** Caretaker auth flows work.
+**Acceptance:** All flows end-to-end; protected routes redirect; RLS confirmed cross-account.
 **Effort:** ~1 day.
 
 ---
 
 ### Phase 3 — Onboarding wizard
-**Goal:** First-time caretaker completes setup and lands a first deposit (fresh or opening balances).
+**Goal:** First-time caretaker completes setup and lands a first deposit.
 
 **Tasks:**
-- `/onboarding` route — URL-driven steps (`?step=1..4`)
-- **Step 1:** kid_profile (name, age, emoji picker) → calls `create_piggybank_with_defaults` RPC (atomic creation per E5)
+- `/onboarding` route, URL-driven steps
+- **Step 1:** kid_profile (name + age + emoji) → calls `create_piggybank_with_defaults` RPC
 - **Step 2:** default split edit (60/20/20 preselected, three inputs sum-validated to 10000 bps)
-- **Step 3:** funders (current user pre-added as primary; add Grandma etc. inline; skip to continue)
-- **Step 4 — Y-fork:**
-  - **Fresh:** first-deposit form (amount, funder, source, live auto-distribution preview using `computeDistribution`). Submits as 1 parent + 3 child transactions
-  - **Migrating:** opening-balance form (3 per-bucket inputs). Writes 3 `kind='opening_balance'` transactions, one per bucket
-- Confetti welcome → redirect to `/dashboard`
-- Resumable: server-side check on `/dashboard` redirects to `/onboarding?step=N` if incomplete
+- **Step 3:** funders (primary added by RPC; add Grandma etc. inline; skip to continue)
+- **Step 4 Y-fork:**
+  - **Fresh:** first-deposit form (amount, funder picker, source, live auto-distribution preview). Calls `add_deposit` RPC.
+  - **Migrating:** opening-balance form (3 per-bucket inputs). Writes 3 `kind='opening_balance'` transactions atomically.
+- Confetti welcome → `/dashboard`
+- Resumable: `/dashboard` server check redirects to `/onboarding?step=N` if incomplete
 - **Vitest:**
-  - `src/lib/distribution.test.ts` — happy path, rounding edge cases ($33.33, $0.01, $1, $1000), zero rejection, invariant `sum(buckets) === amount`, Share-gets-remainder verified
-  - `src/app/onboarding/actions.test.ts` — RPC atomicity, kid name with emoji/unicode handled, caretaker_user_id propagates to all rows
+  - `distribution.test.ts` — happy path + rounding edges + zero rejection + invariant `sum(buckets) === amount` + Share-gets-remainder verified
+  - `onboarding-actions.test.ts` — RPC atomicity, unicode kid names handled, caretaker_user_id propagates
 
-**Deliverable:** First-time caretaker completes wizard and lands on dashboard with non-zero piggybank state.
-**Acceptance:** All 4 steps + back button + resumability work; fresh path distributes correctly; migrating path writes 3 opening balances; Vitest distribution tests pass.
+**Deliverable:** First-time caretaker lands on dashboard with non-zero state.
+**Acceptance:** All 4 steps + back button + resumability; Vitest passes.
 **Effort:** ~2-3 days.
 
 ---
 
-### Phase 4 — Dashboard + Bucket detail + Activity + Coming-soon (read paths)
-**Goal:** Caretaker sees current state.
+### Phase 4 — Dashboard (with named slots) + Bucket detail + Activity + Coming-soon
+**Goal:** Caretaker sees current state; dashboard is composable for later phases.
 
 **Tasks:**
-- App shell layout: sidebar (Dashboard, Buckets, Activity, Funders, Settings) + "coming soon" badged items (APR, Statements, Auto-allocation) → all point to `/coming-soon/[feature]`
-- `/coming-soon/[feature]` route reads a feature manifest (`src/lib/coming-soon-manifest.ts`): each feature has display name, one-line description, target version
-- `/dashboard`: total card (gradient, brand rose), 3 bucket cards (with sub count), Sunday digest CTA, recent activity (last 5 transactions, parent-row collapse with expand-to-children)
-- `/buckets/[kind]`: bucket detail with sub list, individual sub balances, bucket-level activity, "Add subcategory" / rename / archive actions
-- `/activity`: full transaction list with filter sidebar (bucket, sub, date range, source_type, funder), URL-encoded filters, paginated 50/page, parent rows collapse children by default
-- Mobile responsive: sidebar collapses to bottom nav per mockup; cards stack
-- **Vitest:** subcategory archive logic; activity filter combinations; parent/child grouping helper
+- App shell layout: sidebar (Dashboard, Buckets, Activity, Funders, Settings) + coming-soon badged items (APR, Statements, Auto-allocation)
+- `/coming-soon/[feature]` reads `src/lib/coming-soon-manifest.ts`
+- **Dashboard with named slot contract** (`src/components/dashboard/Dashboard.tsx`):
+  - Slot: `banner` (Phase 7 reconciliation banner fills it)
+  - Slot: `cta-row` (Phase 8 "Print weekly digest" button fills it; Phase 4 ships with "Add money" / "Log spend")
+  - Slot: `widgets` (Phase 6 funders widget fills it; v1.1 APR/statements widgets)
+  - Default content for each slot when unfilled
+  - Pages compose: `<Dashboard banner={<ReconcileBanner />} ctaRow={<CtaRow />}>`
+- `/dashboard` server component: total card, 3 bucket cards (sub count), recent activity (last 5, parent-collapse-with-expand)
+- `/buckets/[kind]`: sub list, sub balances, sub manage (add/rename/**archive** — archive rejects if `balance_cents != 0` with helpful error)
+- `/activity`: full transaction list, filter sidebar (bucket, sub, date range, source_type, funder), URL-encoded filters, paginated 50/page, parent rows collapse children, void action on row hover (calls into Phase 5 once shipped)
+- Mobile responsive (sidebar → bottom nav per mockup)
+- **Vitest:** subcategory archive rejection logic; activity filter combinations; parent/child grouping helper
 
-**Deliverable:** All read-only screens render against real data, mockup-matched.
-**Acceptance:** Dashboard total matches sum of bucket balances; filter combinations work and are URL-shareable; archived sub hides from add-spend picker but shows in historical activity; coming-soon manifest renders all 3 placeholders.
+**Deliverable:** Read-only screens render against real data; dashboard slot contract documented and tested.
+**Acceptance:** Dashboard total = sum(buckets) = sum(transactions); archive rejects non-zero balance with correct message; slot fills render correctly in Storybook-style preview.
 **Effort:** ~3-4 days.
 
 ---
 
-### Phase 5 — Add Money + Log Spend (write paths)
-**Goal:** Caretaker records real money movement.
+### Phase 5 — Add Money + Log Spend + Void (write paths)
+**Goal:** Caretaker records and corrects real money movement.
 
 **Tasks:**
-- `/add-money` modal (Dialog): amount, funder picker (autocomplete from funders + "Add new" inline), source_type radio, auto/manual distribution toggle (manual exposes 3 per-bucket inputs that sum-validate to amount)
-- `/log-spend` modal: amount, bucket picker, sub picker, note, date (defaults today)
-- Server actions: `addDeposit`, `logSpend` — Zod validated, write transactions, revalidate `/dashboard` and `/activity`
-- **Deposit write:** parent + 3 children in a single Postgres transaction (`supabase.rpc('add_deposit', {...})` for atomicity)
-- **Spend write:** `SELECT ... FOR UPDATE` on the subcategory row to prevent concurrent oversubtract
-- Funder find-or-create logic inside the deposit RPC
-- **Vitest coverage:**
-  - Distribution math for all auto/manual paths (Phase 3 covered the function; Phase 5 covers the integration)
-  - Rejection of spend that drives sub-balance negative
-  - Rejection of distribution that doesn't sum to deposit amount
-  - 100-step random deposit/spend sequence leaves `bucket.balance_cents = sum(transactions)` invariant
-  - Funder find-or-create returns existing funder for case-insensitive match
-- **E2E candidate:** concurrent spend submissions don't oversubtract (test via two simultaneous server-action calls)
+- `/add-money` modal: amount, funder picker (autocomplete from funders + "Add new" inline), source_type radio, auto/manual distribution toggle
+- `/log-spend` modal: amount, bucket picker, sub picker, note, date
+- **Void transaction action:** on any activity row → confirm modal ("Void this transaction? It will write a reversing adjustment.") → calls `void_transaction` RPC. Original row stays; voided rows render with strikethrough + adjustment line below
+- Server actions: `addDeposit`, `logSpend`, `voidTransaction` (all Zod-validated, call respective RPCs)
+- Spend RPC uses `SELECT ... FOR UPDATE` on the subcategory row
+- **Vitest:**
+  - Distribution integration paths
+  - Spend rejection on sub-balance underflow
+  - Distribution sum-validation rejection
+  - 100-step random deposit/spend/void sequence leaves `bucket.balance_cents = sum(transactions)` invariant
+  - Void writes correct offsetting adjustment
+  - Funder find-or-create case-insensitive match returns existing
+- **E2E candidate:** concurrent spend submissions don't oversubtract
 
-**Deliverable:** Caretaker deposits and spends; all balances stay consistent.
-**Acceptance:** All Vitest pass including 100-sequence invariant; activity log shows new entries with funder/source/note; concurrent-spend test confirms FOR UPDATE serializes correctly.
-**Effort:** ~2-3 days.
+**Deliverable:** Caretaker deposits, spends, and voids; balances consistent across all mutations.
+**Acceptance:** All Vitest pass; activity log renders voids correctly; concurrent-spend test confirms serialization.
+**Effort:** ~3 days (revised up to include void).
 
 ---
 
-### Phase 6 — Funders screen *(parallel-safe after Phase 5)*
+### Phase 6 — Funders screen *(parallel-safe after Phase 5; fills dashboard `widgets` slot)*
 **Goal:** Caretaker manages funders and sees per-funder stats.
 
 **Tasks:**
-- `/funders`: list view (avatar, name, relationship, total contributed, last contribution, # deposits) — sortable, sourced from `v_funder_stats` view
+- `/funders`: list view sourced from `v_funder_stats`; sortable
 - Add/edit/archive funder modal
-- `/funders/[id]`: per-funder contribution history (filtered activity log; uses parent rows only to avoid double-counting)
-- Wire Add Money picker to live funders list (Phase 5 already integrates; this phase ensures stats screen)
-- DB-layer rule: cannot delete funder with linked transactions (CHECK or app-layer); only archive
+- `/funders/[id]`: contribution history (parent rows only, no double-counting)
+- Add Wire Add Money picker to live funders list (already integrated Phase 5)
+- DB rule: cannot delete funder with linked txns; only archive
+- **Optional:** funders widget for dashboard `widgets` slot (top 3 contributors this month) — ship if time
 - **Vitest:** stats helper, archive vs delete distinction
 
-**Deliverable:** Funders is a first-class surface.
-**Acceptance:** Stats match SQL aggregations exactly; archived funders hide from picker but persist in activity; cannot delete with linked txns.
+**Deliverable:** Funders first-class surface.
+**Acceptance:** Stats match SQL aggregations; archived funders hide from picker but persist in activity.
 **Effort:** ~1-2 days.
 
 ---
 
-### Phase 7 — Reconciliation nudge *(parallel-safe after Phase 5)*
-**Goal:** Caretaker reconciles digital vs physical weekly.
+### Phase 7 — Reconciliation nudge *(parallel-safe after Phase 5; fills dashboard `banner` slot)*
+**Goal:** Caretaker reconciles weekly.
 
 **Tasks:**
-- Dashboard banner when `now - last_reconcile_at > 7 days` (last_reconcile_at = max(occurred_at) where `kind='adjustment'`; fallback piggybank.created_at)
-- "Check the jar" flow: input actual jar total → compute diff → reason radio (forgot to log treats / found cash / unknown) → writes `kind='adjustment'` transaction with reason in note
-- Manual "Adjust total" always available from Settings or activity log header
-- Activity log renders adjustment rows distinctly ("Jar check: +$2.00 — Found extra cash")
-- **Vitest:** adjustment writes correctly; trigger updates piggybank.total_balance_cents
+- `ReconcileBanner` component fills dashboard `banner` slot when `now - last_reconcile_at > 7 days`
+- "Check the jar" flow: input actual jar total → compute diff → reason radio → writes `kind='adjustment'` with reason in note
+- Manual "Adjust total" always available from Settings or activity log
+- Activity log renders adjustment rows distinctly
+- **Vitest:** adjustment writes correctly; trigger updates totals
 
-**Deliverable:** Drift recoverable; weekly ritual exists.
+**Deliverable:** Drift recoverable.
 **Acceptance:** Banner appears appropriately; adjustment with reason works; Vitest passes.
 **Effort:** ~1 day.
 
 ---
 
-### Phase 8 — Sunday digest (printable) *(parallel-safe after Phase 5)*
-**Goal:** Caretaker generates a printable kid-friendly weekly summary.
+### Phase 8 — Sunday digest *(parallel-safe after Phase 5; fills dashboard `cta-row` slot)*
+**Goal:** Caretaker generates a printable weekly summary.
 
 **Tasks:**
-- `/digest/[week]` route (week format: ISO `YYYY-WW`, default current)
-- One-page layout: kid name + emoji header, total + weekly delta, top 3 spend items with notes, goal progress bars, friendly copy ("Maya saved $4 toward Lego Friends!")
-- `@media print` CSS: hide sidebar, fit on one letter page, ensure colors render
-- "Print this week's digest" button on dashboard → opens `/digest/<current-iso-week>` in new tab
+- `/digest/[week]` route (ISO `YYYY-WW`, default current)
+- One-page layout: kid header, total + weekly delta, top 3 spends, goal progress, friendly copy
+- `@media print` CSS: hide sidebar, one letter page, colors render
+- "Print this week's digest" button in dashboard `cta-row` slot → opens `/digest/<current>` new tab
 - SSR for screenshot/share-as-image
-- **Vitest:** week-aggregation queries, top-spend-this-week helper, copy template renders
+- **Vitest:** week aggregation queries, top-spend helper, copy template renders
 
-**Deliverable:** Caretaker prints/screenshots a digest and hands it to the kid.
-**Acceptance:** Print preview renders correctly (no sidebar, single page); numbers match dashboard; copy is warm.
+**Deliverable:** Printable digest.
+**Acceptance:** Print preview correct; numbers match dashboard; copy is warm.
 **Effort:** ~1-2 days.
 
 ---
 
-### Phase 9 — Settings + final polish
+### Phase 9 — Settings + export + final polish
 **Goal:** Loose ends, ready for beta cohort.
 
 **Tasks:**
-- `/settings` page: kid profile edit (name, age, emoji), default distribution rule edit, password change form, delete piggybank (typed-confirm modal with explicit `ON DELETE CASCADE` warning copy)
+- `/settings` page: kid profile edit, default distribution rule edit, password change form
+- **"Export my data"** button → downloads `piggybank-export-{date}.json` (all transactions, funders, subs, buckets, distribution rule)
+- **Soft delete piggybank** modal: typed-confirm + "Export your data first?" link to export. Calls `soft_delete_piggybank` RPC. Shows "Restorable for 30 days" copy.
 - Empty states for every screen
-- Error states: every server action wraps in try/catch → `console.error(actionName, sanitizedError)` → toast user-friendly message. No PII in logs
-- Mobile responsive QA across all screens
-- Performance: Lighthouse on dashboard ≥ 90 accessibility, ≥ 80 performance
-- `docs/beta-onboarding.md` — one-page guide for co-developers
-- `SETUP.md` updated for the new schema/auth/local-dev flow
+- Error states: every server action wraps try/catch → `console.error(actionName, sanitizedError)` → toast user-friendly message. No PII in logs
+- Mobile responsive QA
+- Lighthouse dashboard ≥ 90 a11y, ≥ 80 perf
+- `docs/beta-onboarding.md` — one-page guide for co-developers (signup URL, what to expect, how to file feedback, what "void" / "soft delete" / "reconcile" mean)
+- `SETUP.md` updated for new schema/auth/local-dev flow
 
 **Deliverable:** Production-ready beta build.
-**Acceptance:** All write paths handle errors with user-visible toast; 390px and 1280px render mockup-faithfully; Lighthouse a11y ≥ 90.
-**Effort:** ~1-2 days.
+**Acceptance:** All write paths handle errors; 390px and 1280px render mockup-faithfully; Lighthouse a11y ≥ 90; export downloads valid JSON.
+**Effort:** ~2 days (revised up to include export).
 
 ---
 
@@ -339,72 +362,84 @@ This plan replaces the v0 codebase entirely. It is sequenced for **shortest-path
 | Phase | Effort | Lane |
 |---|---|---|
 | 0. Teardown + tooling | ~2 hours | Sequential |
-| 1. Schema + RLS + triggers | ~1.5 days | Sequential |
+| 1. Schema + RLS + triggers + RPCs | ~2 days | Sequential |
 | 2. Auth + password reset | ~1 day | Sequential |
 | 3. Onboarding wizard | ~2-3 days | Sequential |
-| 4. Read paths + coming-soon | ~3-4 days | Sequential |
-| 5. Write paths | ~2-3 days | Sequential (blocks 6/7/8) |
+| 4. Dashboard (with slots) + Buckets + Activity + Coming-soon | ~3-4 days | Sequential |
+| 5. Add Money + Log Spend + Void | ~3 days | Sequential (blocks 6/7/8) |
 | 6. Funders | ~1-2 days | **Parallel A** |
 | 7. Reconciliation | ~1 day | **Parallel B** |
 | 8. Sunday digest | ~1-2 days | **Parallel C** |
-| 9. Settings + polish | ~1-2 days | Sequential after 6/7/8 |
-| **Total (sequential)** | **~14-19 working days** | |
-| **Total (with parallelization)** | **~11-15 working days** | Lane A/B/C max-of merges |
+| 9. Settings + export + polish | ~2 days | Sequential after 6/7/8 |
+| **Total (sequential)** | **~16-19 working days** | |
+| **Total (parallelized)** | **~13-15 working days** | |
 
 ## 7. Risks & mitigations
 
 | Risk | Mitigation |
 |---|---|
-| **Distribution rounding leaks cents** | Floor-first-two strategy, Share gets remainder (E7). `computeDistribution(amount, rule)` is the only place that does the math; Vitest verifies sum invariant on 1000 random amounts × random rules |
-| **Email rate limit during beta launch** (~4/hour shared Supabase SMTP) | Stagger beta invites across days. Resend integration ready as a Phase 9.5 swap before public launch |
-| **shadcn vs mockup styling conflicts** | Use shadcn only for the listed primitives (Dialog, Combobox, Select, etc.). All branded surfaces (cards, dashboard, total card, bucket tiles) are custom — don't theme shadcn's Card primitive into a bucket tile |
-| **Onboarding wizard abandonment between steps** | URL-driven steps means resumable. Server-side check on `/dashboard` redirects to `/onboarding?step=N` if incomplete |
-| **Concurrent spend writes oversubtract from a sub** | Server action wraps the spend write in a Postgres transaction with `SELECT ... FOR UPDATE` on the subcategory row |
-| **Triggers vs application logic for balance maintenance** | Triggers chosen for atomicity. Mitigation: clear naming (`maintain_balances_on_transaction_*`), schema comment, Vitest invariant tests on INSERT/UPDATE/DELETE paths |
-| **Deposit parent-child schema corruption** (a parent row exists without its children, or vice versa) | All deposit writes go through `add_deposit` RPC which creates parent + children atomically. Direct SQL inserts are guarded by `CHECK (parent_id IS NULL OR kind = 'deposit')`. Children require non-null bucket_id; parents require null. Vitest verifies no orphans after 100 random sequences |
-| **Denormalized `caretaker_user_id` drift** (sub-table row has wrong caretaker_user_id) | Insert triggers auto-populate from parent piggybank — caretaker_user_id is never set by app code. Trigger is the single source of truth |
-| **RLS subquery scaling** | Single-column index lookup pattern (E4 denormalization) — RLS performance is constant regardless of piggybank count per caretaker |
-| **Activity log noise from parent + child rows** | UI groups by parent_id; children render only when parent expanded. Filtering by bucket queries children directly (`WHERE bucket_id = X`) bypassing parent collapse |
+| **Distribution rounding leaks cents** | Floor-first-two, Share gets remainder (E7). Single source of truth: `computeDistribution(amount, rule)`. Vitest verifies invariant on 1000 random amounts |
+| **Email rate limit during beta launch** (~4/hour shared Supabase SMTP) | Stagger beta invites; Resend integration ready as a public-launch swap |
+| **shadcn vs mockup styling conflicts** | Use shadcn only for listed primitives; branded surfaces fully custom |
+| **Onboarding abandonment** | URL-driven steps = resumable. Server check redirects to incomplete step |
+| **Concurrent spend writes oversubtract** | `SELECT ... FOR UPDATE` inside spend RPC |
+| **Triggers vs app logic for balances** | Triggers chosen for atomicity; clear naming + Vitest invariants on INSERT/UPDATE/DELETE/VOID |
+| **Deposit parent-child schema corruption** | `add_deposit` RPC atomic; CHECK constraints; `DEFERRABLE INITIALLY DEFERRED` FK (OV1) lets non-obvious insertion orders succeed at commit. Vitest verifies no orphans |
+| **RLS blocks propagation trigger** | Trigger marked `SECURITY DEFINER` + empty `search_path` (OV2). Vitest under real caretaker JWT confirms inserts succeed |
+| **Denormalized `caretaker_user_id` drift** | Insert triggers auto-populate; app code never sets the column. Trigger is single source of truth |
+| **RLS subquery scaling** | Single-column index lookup pattern (E4 denormalization); RLS constant-time regardless of caretaker scale |
+| **Funder case-insensitive race** | Partial unique index `(piggybank_id, lower(display_name)) WHERE archived_at IS NULL` + `find_or_create_funder` RPC handles race (OV6) |
+| **Phases 6/7/8 merge conflicts on dashboard** | Named slot contract shipped in Phase 4 (OV7) — each phase fills its own slot file |
+| **Beta caretaker misclicks delete** | Soft delete + 30-day purge (E12 revised). Restorable via Supabase dashboard UPDATE |
+| **Beta caretaker mis-logs a transaction** | Void action ships in Phase 5 (OV3). Writes offsetting adjustment, preserves audit |
+| **Subcategory archive with money in it** | Reject with helpful error (OV4); v1.1 transfer support unlocks richer flow |
+| **Aggregate overflow risk** | `bigint` on balance counters; SQL view SUMs cast to bigint (OV-E8 split) |
+| **Activity log noise from parent + child rows** | UI groups by parent_id; children render only when expanded. Bucket filter queries children directly |
 
-## 8. Worktree parallelization (from Eng review)
+## 8. Worktree parallelization
 
-**Sequential lanes (blocking):** Phase 0 → 1 → 2 → 3 → 4 → 5. Each touches shared schema, auth, or layout that the next depends on.
+**Sequential (blocking):** P0 → P1 → P2 → P3 → P4 → P5
 
-**Parallel lanes after Phase 5:**
-- **Lane A:** Phase 6 (Funders) — touches `src/app/funders/`
-- **Lane B:** Phase 7 (Reconciliation) — touches `src/app/reconcile/` + `src/components/dashboard/banner.tsx`
-- **Lane C:** Phase 8 (Sunday digest) — touches `src/app/digest/`
+**Parallel after Phase 5** (enabled by dashboard slot contract in P4):
+- **Lane A:** P6 Funders (`src/app/funders/` + optional dashboard widgets slot)
+- **Lane B:** P7 Reconciliation (`src/app/reconcile/` + dashboard banner slot)
+- **Lane C:** P8 Sunday digest (`src/app/digest/` + dashboard cta-row slot)
 
-Disjoint route directories; no shared state mutations beyond reading from already-shipped schema. Three worktrees recommended.
+Each lane edits its own files (route directory + own slot fill). Dashboard component itself is touched only in P4. Three worktrees recommended.
 
-**Collect:** Phase 9 polish runs after all three lanes merge.
+**Collect:** P9 polish runs after all three lanes merge.
 
 ## 9. Failure modes
 
-Every new codepath should have at least one test covering its primary failure mode:
-
-| Codepath | Failure mode | Test? | Error handling | User sees? |
+| Codepath | Failure mode | Test | Error handling | User sees |
 |---|---|---|---|---|
-| `computeDistribution` | Rounding leaks cents | ✅ Vitest | n/a (deterministic) | Invariant: caretaker never sees mismatched total |
-| `addDeposit` RPC | Funder find-or-create race | ✅ Vitest | Postgres unique index handles | n/a (transparent) |
-| `logSpend` server action | Concurrent oversubtract | ✅ Vitest E2E candidate | `SELECT ... FOR UPDATE` | Spend rejected with toast |
-| `recordReconciliation` | Trigger updates wrong bucket | ✅ Vitest invariant | n/a | Invariant maintained |
-| Auth password reset | Token reuse after password change | ❌ (Supabase handles) | Supabase invalidates | "Invalid or expired link" |
-| Activity log filter | Empty result | ⚠️ Manual QA | n/a | Empty state with friendly copy |
-| Dashboard | RLS leak (caretaker B sees A's data) | ✅ Vitest RLS test | Postgres RLS enforces | n/a (never happens) |
-| Onboarding RPC | Partial state after failure | ✅ Vitest | Postgres transaction rolls back | User sees error toast; retries cleanly |
+| `computeDistribution` | Rounding leaks cents | Vitest invariant | Deterministic | Never sees mismatched total |
+| `add_deposit` RPC | FK ordering issue | Vitest fk-ordering | DEFERRABLE handles | n/a |
+| `add_deposit` RPC | Funder find-or-create race | Vitest funder-race | Unique index handles | n/a (transparent) |
+| `log_spend` | Concurrent oversubtract | Vitest E2E candidate | `SELECT ... FOR UPDATE` | Spend rejected with toast |
+| `void_transaction` | Voiding an already-voided txn | Vitest | RPC checks idempotency | "Already voided" toast |
+| `recordReconciliation` | Trigger updates wrong bucket | Vitest invariant | n/a | Invariant maintained |
+| `archive_subcategory` | Archive with non-zero balance | Vitest | RPC rejects | Helpful error toast |
+| Propagation trigger | RLS blocks caretaker JWT path | Vitest trigger-security | SECURITY DEFINER | n/a |
+| Auth password reset | Token reuse after password change | Supabase handles | Built-in | "Invalid or expired link" |
+| Soft delete piggybank | Soft-deleted rows leak into queries | Vitest rls + cascade | RLS policy + app-layer join filter | n/a (invisible) |
+| Dashboard | RLS leak (caretaker B sees A) | Vitest rls | Postgres RLS | Never |
+| Onboarding RPC | Partial state on failure | Vitest | Postgres transaction rolls back | Toast; retry clean |
+| Activity filter | Empty result | Manual QA | n/a | Empty state with friendly copy |
 
-**Critical gaps flagged:** None. All money-touching codepaths have planned test coverage.
+**Critical gaps:** None. All money-touching codepaths planned with test coverage.
 
 ## 10. Handoff sequence
 
-1. **This plan is the source of truth.** Begin Phase 0 only after the plan is read end-to-end by the implementer (human or AI).
-2. **Lock Phase 1 schema** before any application code is written against it — schema review is the cheapest moment to catch model errors.
-3. **Beta-of-one** after Phase 5 (Add Money + Log Spend) — minimum feature set for one real caretaker to test for a week.
+1. **This plan is the source of truth.** Implementer (human or AI) reads end-to-end before Phase 0.
+2. **Lock Phase 1 schema** before any app code is written against it.
+3. **Beta-of-one** after Phase 5 — minimum feature set for one real caretaker to test for a week.
 4. **Full beta cohort** after Phase 9.
 5. **Public launch checkpoint requires:**
-   - Resend swap (Risk: email rate limit)
-   - Email confirmation re-enabled in Supabase
-   - COPPA review if owner UI is roadmapped
-   - Vercel Pro if bandwidth or commercial use changes the calculus
+   - Resend swap (email rate limit risk)
+   - Supabase email confirmation re-enabled
+   - COPPA review if owner UI roadmapped
+   - Vercel Pro if bandwidth or commercial-use changes the calculus
    - Sentry integration if beta surfaced hard-to-diagnose errors
+   - **Vercel Analytics events instrumented** (`onboarding_completed`, `deposit_logged`, `spend_logged`, `reconciliation_completed`) for real activation/retention measurement
+   - **Soft-delete purge cron** activated (manual purge during beta is fine; cron before public)
