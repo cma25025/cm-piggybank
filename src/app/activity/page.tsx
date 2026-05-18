@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { formatCents, cn } from "@/lib/utils";
 import Link from "next/link";
+import { VoidButton } from "./void-button";
 
 interface SearchParams {
   bucket?: string;
@@ -127,6 +128,11 @@ export default async function ActivityPage({
                   <div className={cn("font-data font-semibold tnum text-sm", voided ? "line-through text-ink-muted" : signed > 0 ? "text-share" : "text-ink")}>
                     {signed > 0 ? "+" : "−"} {formatCents(Math.abs(signed))}
                   </div>
+                  <VoidButton
+                    transactionId={r.id}
+                    isVoided={voided}
+                    rowSummary={`${r.note || sub?.display_name || r.kind} — ${formatCents(r.amount_cents ?? 0)}`}
+                  />
                 </li>
               );
             })}
