@@ -68,7 +68,7 @@ export function SubManagement({ bucketId, bucketKind, subs }: Props) {
   );
 }
 
-function SubRow({ sub, bucketKind }: { sub: Sub; bucketKind: Sub["archivedAt"] extends infer K ? "spend" | "save" | "share" : never }) {
+function SubRow({ sub, bucketKind }: { sub: Sub; bucketKind: "spend" | "save" | "share" }) {
   const [state, formAction] = useFormState(archiveSubAction, INITIAL_ARCHIVE);
   const pct = sub.targetAmountCents
     ? Math.min(100, Math.round((sub.balanceCents / sub.targetAmountCents) * 100))

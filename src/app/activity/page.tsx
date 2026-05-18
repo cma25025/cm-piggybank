@@ -41,6 +41,10 @@ export default async function ActivityPage({
     .maybeSingle();
   if (!piggybank) redirect("/onboarding/step-1");
 
+  // Default view: hide deposit-child rows (parent_id IS NOT NULL) so each
+  // deposit shows as one summary row instead of 4 (parent + 3 children).
+  // The bucket filter below switches to children rows for per-bucket
+  // visibility (a deposit's parent has bucket_id=NULL).
   let query = supabase
     .from("transaction")
     .select(
@@ -49,6 +53,11 @@ export default async function ActivityPage({
     .eq("piggybank_id", piggybank.id)
     .order("occurred_at", { ascending: false })
     .limit(PAGE_SIZE);
+
+  if (!bucketFilter) {
+    // "All buckets" view: parent deposits + non-deposit rows (spends, adjustments, etc).
+    query = query.is("parent_id", null);
+  }
 
   if (bucketFilter) {
     // Filter by bucket kind via a nested filter: select bucket where kind = X
