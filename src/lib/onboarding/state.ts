@@ -15,9 +15,14 @@ export async function getOnboardingState(caretakerUserId: string): Promise<Onboa
 
   // We deliberately use the Auth-aware client; RLS filters to this caretaker's
   // own piggybank (and excludes soft-deleted).
+  // RLS already filters deleted_at via the piggybank SELECT policy, but be
+  // explicit + order by created_at desc so multi-row leftovers from prior
+  // create attempts are deterministic.
   const { data: piggybank } = await supabase
     .from("piggybank")
     .select("id, display_name, kid_profile_id, kid_profile(display_name)")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 

@@ -2,6 +2,8 @@
 
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth/get-user";
+import { getOnboardingState } from "@/lib/onboarding/state";
 import { redirect } from "next/navigation";
 
 const Schema = z.object({
@@ -38,6 +40,15 @@ export async function createKidProfileAction(
     return { fieldErrors };
   }
 
+  // Idempotency guard: if this caretaker already has an active piggybank,
+  // skip the RPC and go forward. v1 is single-piggybank-per-caretaker; re-running
+  // step 1 would otherwise create orphan kid_profile + piggybank rows.
+  const user = await requireUser();
+  const existing = await getOnboardingState(user.id);
+  if (existing.piggybankId) {
+    redirect("/onboarding/step-2");
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.rpc("create_piggybank_with_defaults", {
     p_kid_name: parsed.data.display_name,
@@ -47,10 +58,6 @@ export async function createKidProfileAction(
 
   if (error) {
     console.error("createKidProfileAction", error.message);
-    // If they already created one, just continue forward
-    if (/duplicate|already/i.test(error.message)) {
-      redirect("/onboarding/step-2");
-    }
     return { error: "Couldn't create the piggybank. Please try again." };
   }
 
