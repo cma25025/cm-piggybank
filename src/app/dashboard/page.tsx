@@ -3,6 +3,7 @@ import { getOnboardingState } from "@/lib/onboarding/state";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { Dashboard } from "@/components/dashboard/dashboard";
 import { FunderWidget } from "@/components/dashboard/funder-widget";
+import { ReconcileBanner } from "@/components/dashboard/reconcile-banner";
 import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
@@ -18,6 +19,12 @@ export default async function DashboardPage() {
   return (
     <Dashboard
       data={data}
+      banner={
+        <ReconcileBanner
+          piggybankId={data.piggybankId}
+          currentTotalCents={data.totalBalanceCents}
+        />
+      }
       widgets={<FunderWidget piggybankId={data.piggybankId} />}
     />
   );

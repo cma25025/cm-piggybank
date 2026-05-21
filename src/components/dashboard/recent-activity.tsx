@@ -72,7 +72,7 @@ function pickEmoji(r: RecentActivityRow): string {
   if (r.subEmoji) return r.subEmoji;
   if (r.kind === "deposit") return SOURCE_EMOJI[r.sourceType ?? "other"] ?? "💵";
   if (r.kind === "interest") return "📈";
-  if (r.kind === "adjustment") return "🔧";
+  if (r.kind === "adjustment") return r.note?.startsWith("Reconciled:") ? "⚖️" : "🔧";
   if (r.kind === "opening_balance") return "🏦";
   return "·";
 }
