@@ -245,15 +245,12 @@ Reads `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from `.env.loca
 
 ## What I'd attack first next session
 
-Both background subagents from the prior session landed and their outputs are committed:
-- Phase 5 re-audit → `docs/polish-todo.md` (the void lineage P1 it caught is already FIXED in Phase 5.6)
-- Phase 6-9 specs → `docs/PHASE-6-9-SPEC.md`
+Three real paths depending on founder posture:
 
-So:
+**Path A — finish v1 (Phase 8 + 9):** Sunday digest then Settings/export/soft-delete UI. ~2-3 hours CC total. Closes the v1 plan. Then we can call v1 "done" and move to post-launch discovery work. Phase 8 spec is in `docs/PHASE-6-9-SPEC.md` § Phase 8 (ISO week vs Sun-Sat is the main footgun; spec says compute bounds in JS, don't reuse `v_weekly_digest`).
 
-1. **Read `docs/PHASE-6-9-SPEC.md` Phase 6 section.** It has the file list, queries, slot integration pattern.
-2. **Build Phase 6 — Funders.** ~30-60 min. Replace `src/app/funders/page.tsx` placeholder with the real list + per-funder detail + `FunderWidget` for the dashboard slot. Uses already-shipped `v_funder_stats` view.
-3. **Dispatch fresh Phase 6 audit subagent in background** as the commit lands. Same pattern as Phases 1-5.
-4. **OR Live-DB test harness** if you want to invest in compounding signal before more features. Bigger lift but unblocks all the deferred Vitest work.
+**Path B — start v1.1 discovery work in parallel:** Read `docs/DISCOVERY-ROADMAP.md` for the post-v1 plan. My recommendation in that doc is **posture B (Wait-a-Week + digest prompts)** as the highest-leverage post-launch additions. Wait-a-Week is the single most important behavioral mechanic the product is currently missing (Lieber's strongest critique of where v1 is structurally wrong). Could ship in ~1.5 days CC.
 
-After Phase 6, Phases 7 + 8 can ship in parallel worktrees per the v1 plan §8 (parallel-safe; each fills a different dashboard slot). Phase 9 is the cleanup + polish phase.
+**Path C — live-DB test harness:** Set up a test caretaker pattern or `supabase start` local stack so we can finally run the RLS / cascade / FK ordering / trigger security / funder race tests the plan called for. Unblocks all the deferred Vitest work (carried-forward P0 across Phases 1-7). 2-4 hours CC. Compounding payoff but no shippable user value.
+
+My lean: **A then B.** Close v1 cleanly so it can graduate from "beta in progress" to "v1 shipped," then immediately start Wait-a-Week so the product gets its single most distinctive behavioral feature before more caretakers land.
