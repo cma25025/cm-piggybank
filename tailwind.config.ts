@@ -17,18 +17,23 @@ const config: Config = {
           soft: "#FDE7E4",
           deep: "#C73D36",
         },
-        // Bucket palette
+        // Bucket palette. Updated 2026-05-20:
+        //   Spend = green (go-money, the daily allowance)
+        //   Save  = blue  (calm, deferred, building)
+        //   Share = red   (serious, charity, important)
+        // Positive-money UI (incoming deposits, valid totals) reuses spend
+        // green; bucket label disambiguates from the Spend bucket itself.
         spend: {
-          DEFAULT: "#F97316",
-          soft: "#FFF1E5",
+          DEFAULT: "#10B981", // emerald-500
+          soft: "#DCFCE7",    // green-100
         },
         save: {
-          DEFAULT: "#2563EB",
+          DEFAULT: "#2563EB", // unchanged
           soft: "#E4ECFF",
         },
         share: {
-          DEFAULT: "#10B981",
-          soft: "#DCFCE7",
+          DEFAULT: "#DC2626", // red-600 — distinct from brand rose
+          soft: "#FEE2E2",    // red-100
         },
         // Surface neutrals (warm, not cool gray)
         ink: {

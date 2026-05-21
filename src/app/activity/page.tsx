@@ -137,7 +137,7 @@ export default async function ActivityPage({
                       {isParent ? ` · distributed` : ""}
                     </div>
                   </div>
-                  <div className={cn("font-data font-semibold tnum text-sm", voided ? "line-through text-ink-muted" : signed > 0 ? "text-share" : "text-ink")}>
+                  <div className={cn("font-data font-semibold tnum text-sm", voided ? "line-through text-ink-muted" : signed > 0 ? "text-spend" : "text-ink")}>
                     {signed > 0 ? "+" : "−"} {formatCents(Math.abs(signed))}
                   </div>
                   <VoidButton

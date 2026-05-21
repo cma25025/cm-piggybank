@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth/get-user";
 import { getOnboardingState } from "@/lib/onboarding/state";
 import { getDashboardData } from "@/lib/dashboard/queries";
 import { Dashboard } from "@/components/dashboard/dashboard";
+import { FunderWidget } from "@/components/dashboard/funder-widget";
 import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
@@ -14,5 +15,10 @@ export default async function DashboardPage() {
   const data = await getDashboardData();
   if (!data) redirect("/onboarding/step-1");
 
-  return <Dashboard data={data} />;
+  return (
+    <Dashboard
+      data={data}
+      widgets={<FunderWidget piggybankId={data.piggybankId} />}
+    />
+  );
 }

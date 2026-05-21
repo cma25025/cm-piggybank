@@ -159,7 +159,7 @@ export function AddMoneyForm({ rule, funders }: Props) {
           <p
             className={
               "text-xs " +
-              (manualValid ? "text-share" : "text-destructive")
+              (manualValid ? "text-spend" : "text-destructive")
             }
           >
             Manual total: ${manualTotal.toFixed(2)} of ${(amountCents / 100).toFixed(2)}{" "}

@@ -1,26 +1,81 @@
+import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth/get-user";
 import { AppShell } from "@/components/layout/app-shell";
-import { COMING_SOON } from "@/lib/coming-soon-manifest";
+import { createClient } from "@/lib/supabase/server";
+import { getFunders } from "@/lib/funders/queries";
+import { FunderRow } from "./funder-row";
+import { AddFunderButton } from "./add-funder-button";
 
-/**
- * Phase 4 placeholder: the real Funders screen lands in Phase 6 with
- * per-funder stats from the v_funder_stats view. For now the route exists
- * so the sidebar link doesn't 404.
- */
-export default function FundersPage() {
+export default async function FundersPage() {
+  await requireUser();
+  const supabase = await createClient();
+  const { data: pb } = await supabase
+    .from("piggybank")
+    .select("id")
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle();
+  if (!pb) redirect("/onboarding/step-1");
+
+  const all = await getFunders(pb.id);
+  const active = all.filter((f) => !f.archived_at);
+  const archived = all.filter((f) => f.archived_at);
+
   return (
     <AppShell>
-      <div className="p-6 md:p-10 max-w-2xl mx-auto">
-        <div className="rounded-3xl border-2 border-dashed border-line p-10 text-center bg-card">
-          <div className="text-6xl mb-4">👥</div>
-          <h1 className="font-display text-2xl mb-2">Funders</h1>
-          <p className="text-ink-muted max-w-md mx-auto">
-            List of who's contributed, per-funder totals, and the manage UI. You can
-            already add funders during onboarding and when logging deposits.
-          </p>
-          <div className="mt-6 inline-block rounded-full bg-brand-soft text-brand-deep text-xs font-semibold px-3 py-1 uppercase tracking-wide">
-            Building in Phase 6
+      <div className="p-6 md:p-10 max-w-3xl mx-auto space-y-6">
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="font-display text-3xl">Funders</h1>
+            <p className="text-sm text-ink-muted mt-1">
+              Who&apos;s contributing. Track deposits by source.
+            </p>
           </div>
+          <AddFunderButton />
         </div>
+
+        {active.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-line p-10 text-center text-ink-muted">
+            No funders yet. The primary funder was added automatically during onboarding.
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {active.map((f) => (
+              <FunderRow
+                key={f.funder_id}
+                funderId={f.funder_id}
+                displayName={f.display_name}
+                relationship={f.relationship}
+                totalContributedCents={f.total_contributed_cents}
+                depositCount={f.deposit_count}
+                lastContributionAt={f.last_contribution_at}
+                archived={false}
+              />
+            ))}
+          </ul>
+        )}
+
+        {archived.length > 0 ? (
+          <details className="mt-6">
+            <summary className="cursor-pointer text-sm text-ink-muted hover:text-ink">
+              Archived ({archived.length})
+            </summary>
+            <ul className="space-y-2 mt-3">
+              {archived.map((f) => (
+                <FunderRow
+                  key={f.funder_id}
+                  funderId={f.funder_id}
+                  displayName={f.display_name}
+                  relationship={f.relationship}
+                  totalContributedCents={f.total_contributed_cents}
+                  depositCount={f.deposit_count}
+                  lastContributionAt={f.last_contribution_at}
+                  archived={true}
+                />
+              ))}
+            </ul>
+          </details>
+        ) : null}
       </div>
     </AppShell>
   );

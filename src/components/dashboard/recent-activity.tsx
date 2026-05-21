@@ -59,7 +59,7 @@ function ActivityRow({ row }: { row: RecentActivityRow }) {
       <div
         className={
           "font-data font-semibold tabular-nums tnum text-sm " +
-          (voided ? "line-through text-ink-muted" : positive ? "text-share" : "text-ink")
+          (voided ? "line-through text-ink-muted" : positive ? "text-spend" : "text-ink")
         }
       >
         {positive ? "+" : "−"} {formatCents(Math.abs(row.signedAmountCents))}

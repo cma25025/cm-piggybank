@@ -63,7 +63,7 @@ export default function Step2Page() {
           className={
             "text-center text-sm font-medium rounded-md p-3 " +
             (valid
-              ? "bg-share-soft text-share"
+              ? "bg-spend-soft text-spend"
               : "bg-destructive/10 text-destructive")
           }
         >
