@@ -18,7 +18,7 @@ export async function FunderWidget({ piggybankId }: Props) {
   return (
     <section>
       <div className="flex items-baseline justify-between mb-3">
-        <h2 className="font-display text-lg font-bold">Top contributors this month</h2>
+        <h2 className="font-display text-lg font-bold">Top contributors · last 30 days</h2>
         <Link href="/funders" className="text-sm text-brand font-medium hover:underline">
           View all →
         </Link>

@@ -100,8 +100,13 @@ export function FunderRow({
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="shrink-0">
-              ⋯
+            <Button
+              variant="ghost"
+              size="sm"
+              className="shrink-0"
+              aria-label={`More actions for ${displayName}`}
+            >
+              <span aria-hidden>⋯</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

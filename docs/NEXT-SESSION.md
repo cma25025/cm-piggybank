@@ -1,7 +1,7 @@
 # Next Session — Handoff for the Next Claude Code
 
-**Last updated:** 2026-05-20 — first real beta caretaker logged in; admin tooling added
-**Current state:** Phases 0–5 + 4 audit-fix passes shipped. Production on Vercel. Schema live in Supabase (4 migrations). Phase 6-9 specs ready in `docs/PHASE-6-9-SPEC.md`. First end-to-end caretaker login verified manually.
+**Last updated:** 2026-05-20 — Phases 6 + 7 shipped, bucket colors swapped, discovery roadmap landed
+**Current state:** Phases 0–7 shipped. Production on Vercel (auto-deploys). Schema live in Supabase (7 migrations). Phase 8 + 9 specs ready in `docs/PHASE-6-9-SPEC.md`. Post-v1 discovery roadmap (informed by Ron Lieber's *The Opposite of Spoiled*) in `docs/DISCOVERY-ROADMAP.md`.
 
 ---
 
@@ -110,10 +110,16 @@ Paste this into a new session:
 | 3. Onboarding wizard | ✅ done | |
 | 4. Dashboard + Buckets + Activity + Coming-soon | ✅ done | + 4.5 audit fixes |
 | 5. Add Money + Log Spend + Void | ✅ done | + 5.6 hotfix (RPC, useEffect, timezone, void lineage) |
-| 6. Funders screen | ⏳ **next** | placeholder shipped; real screen per `docs/PHASE-6-9-SPEC.md` |
-| 7. Reconciliation nudge | ⏳ next | uses `Dashboard.banner` slot |
-| 8. Sunday digest | ⏳ next | uses `Dashboard.ctaRow` slot |
+| 6. Funders screen | ✅ done | + audit fixes (RPC trim, 30-day window, a11y) |
+| 7. Reconciliation nudge | ✅ done | + audit fix (Spend bucket throw) |
+| 8. Sunday digest | ⏳ **next** | uses `Dashboard.ctaRow` slot, spec in PHASE-6-9-SPEC.md |
 | 9. Settings + JSON export + soft-delete UI | ⏳ next | |
+
+**Also shipped this session:**
+- Bucket color swap: Spend = green, Save = blue (unchanged), Share = red
+- `scripts/reset-password.mjs` admin tool (called once for first beta caretaker)
+- Dev-mode auth error verbosity (`NODE_ENV=development` shows raw Supabase errors)
+- Landing page (/) rewrite — no longer the misleading "Phase 0 scaffold"
 
 Detailed specs are in **`docs/PHASE-6-9-SPEC.md`** — concrete file lists, schema queries, dashboard slot integration, acceptance criteria, footguns. Read it before starting Phase 6.
 

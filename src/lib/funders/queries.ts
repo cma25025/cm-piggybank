@@ -67,17 +67,20 @@ export interface TopFunder {
 }
 
 /**
- * Top N funders this calendar month. Aggregates parent deposits only (no
- * triple-count from children). Returns empty array if no deposits.
+ * Top N funders in the trailing 30 days. Aggregates parent deposits only
+ * (no triple-count from children). Returns empty array if no deposits.
  * Cached for a single render via React.cache so the dashboard's FunderWidget
  * doesn't refetch when the parent re-renders.
+ *
+ * Uses a rolling 30-day window instead of "this calendar month" so the
+ * widget doesn't blink to empty at month boundaries (the UTC-month variant
+ * showed nothing for PST caretakers from 5pm local on the last day of the
+ * month until midnight UTC).
  */
 export const getTopFundersThisMonth = cache(
   async (piggybankId: string, limit: number = 3): Promise<TopFunder[]> => {
     const supabase = await createClient();
-    const monthStart = new Date();
-    monthStart.setUTCDate(1);
-    monthStart.setUTCHours(0, 0, 0, 0);
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     const { data } = await supabase
       .from("transaction")
@@ -85,7 +88,7 @@ export const getTopFundersThisMonth = cache(
       .eq("piggybank_id", piggybankId)
       .eq("kind", "deposit")
       .is("parent_id", null)
-      .gte("occurred_at", monthStart.toISOString())
+      .gte("occurred_at", since.toISOString())
       .not("funder_id", "is", null);
 
     if (!data || data.length === 0) return [];

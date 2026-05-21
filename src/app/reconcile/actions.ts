@@ -53,7 +53,15 @@ export async function recordReconciliationAction(
     .eq("piggybank_id", pb.id)
     .eq("kind", "spend")
     .maybeSingle();
-  if (!spendBucket) return { error: "Spend bucket missing — please contact support." };
+  if (!spendBucket) {
+    // Schema invariant: every piggybank has all 3 buckets (created by the
+    // create_piggybank_with_defaults RPC). Reaching here means data
+    // corruption — throw so it surfaces in Vercel logs, don't show a
+    // friendly toast that hides the bug.
+    throw new Error(
+      `Schema invariant violated: piggybank ${pb.id} has no Spend bucket`,
+    );
+  }
 
   const actualCents = dollarsToCents(parsed.data.actual_total_dollars);
   const diffCents = actualCents - (pb.total_balance_cents ?? 0);
