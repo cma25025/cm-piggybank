@@ -35,7 +35,12 @@ export async function loginAction(
 
   if (error) {
     console.error("loginAction", error.message);
-    // Don't leak whether the email exists; uniform error.
+    // Production: uniform error (no enumeration). Dev: surface the real
+    // message so beta co-developers can self-diagnose "Email not confirmed"
+    // vs "Invalid login credentials" vs other Supabase failures.
+    if (process.env.NODE_ENV === "development") {
+      return { error: `[dev] ${error.message}` };
+    }
     return { error: "Invalid email or password." };
   }
 

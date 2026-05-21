@@ -36,8 +36,11 @@ export async function signupAction(
 
   if (error) {
     console.error("signupAction", error.message);
-    // Uniform error: don't leak whether the email is already registered
-    // (would enable account enumeration via the signup form).
+    // Production: uniform error (no enumeration). Dev: surface the real
+    // message so beta debug is possible without crawling Vercel logs.
+    if (process.env.NODE_ENV === "development") {
+      return { error: `[dev] ${error.message}` };
+    }
     return { error: "Couldn't create the account. Try a different email or sign in." };
   }
 

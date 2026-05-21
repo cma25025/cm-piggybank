@@ -1,7 +1,7 @@
 # Next Session — Handoff for the Next Claude Code
 
-**Last updated:** 2026-05-18 — through Phase 5 re-audit fixes (void lineage, etc.)
-**Current state:** Phases 0–5 + 4 audit-fix passes shipped. Production on Vercel. Schema live in Supabase (4 migrations). Phase 6-9 specs ready in `docs/PHASE-6-9-SPEC.md`.
+**Last updated:** 2026-05-20 — first real beta caretaker logged in; admin tooling added
+**Current state:** Phases 0–5 + 4 audit-fix passes shipped. Production on Vercel. Schema live in Supabase (4 migrations). Phase 6-9 specs ready in `docs/PHASE-6-9-SPEC.md`. First end-to-end caretaker login verified manually.
 
 ---
 
@@ -106,11 +106,11 @@ Paste this into a new session:
 |---|---|---|
 | 0. Teardown | ✅ done | |
 | 1. Schema + RLS + triggers + RPCs | ✅ done | + 1.5 audit fixes |
-| 2. Auth + password reset | ✅ done | + 2.5 audit fixes |
+| 2. Auth + password reset | ✅ done | + 2.5 audit fixes + dev-mode error verbosity |
 | 3. Onboarding wizard | ✅ done | |
 | 4. Dashboard + Buckets + Activity + Coming-soon | ✅ done | + 4.5 audit fixes |
-| 5. Add Money + Log Spend + Void | ✅ done | + 5 hotfix (RPC, useEffect, timezone) |
-| 6. Funders screen | ⏳ next | placeholder shipped; real screen TBD |
+| 5. Add Money + Log Spend + Void | ✅ done | + 5.6 hotfix (RPC, useEffect, timezone, void lineage) |
+| 6. Funders screen | ⏳ **next** | placeholder shipped; real screen per `docs/PHASE-6-9-SPEC.md` |
 | 7. Reconciliation nudge | ⏳ next | uses `Dashboard.banner` slot |
 | 8. Sunday digest | ⏳ next | uses `Dashboard.ctaRow` slot |
 | 9. Settings + JSON export + soft-delete UI | ⏳ next | |
@@ -197,6 +197,33 @@ From Eng review:
 - **Don't echo Supabase error messages to users.** Map known patterns; otherwise generic "couldn't do X". Log details server-side only.
 
 ---
+
+## Incidents observed in real use
+
+**2026-05-20: First beta caretaker locked out of their account.**
+
+User signed up via `/signup`, got "Invalid email or password" on subsequent login attempts. Forensic findings:
+
+1. **`auth.users.email_confirmed_at` was NULL** — the manual Supabase dashboard step (disable "Confirm email") was NEVER done. Signup created the user but Supabase refused to issue a session.
+2. **`auth.audit_log_entries` is empty across the whole project** — Supabase audit logging is OFF by default on free tier. Zero forensic trail for failed login attempts.
+3. **After fixing #1 via SQL (`UPDATE auth.users SET email_confirmed_at = now()`), login STILL failed.** Means the password was genuinely wrong too (likely autofill/typo mismatch between signup and login).
+4. **Fix:** ran `node scripts/reset-password.mjs --email <addr>` (new tool, see below) → temp password → user logged in successfully → first session created.
+
+**What this changes going forward:**
+- `scripts/reset-password.mjs` exists as the canonical recovery tool (NOT raw SQL).
+- `loginAction` + `signupAction` now show the real Supabase error message in `NODE_ENV=development` so co-developers running locally can self-diagnose. Production still shows the uniform message.
+- SETUP.md's "disable email confirmation" step is now critical-path — needs to be done before any signup, not just suggested.
+- Action item still open: enable Supabase audit logging in Dashboard → Settings → Auth → Logs so the NEXT incident has a forensic trail.
+
+## Admin recovery tooling
+
+```
+node scripts/reset-password.mjs --email <addr> [--password <pwd>]
+```
+
+Calls `supabase.auth.admin.updateUserById` via service role. If `--password` omitted, generates a random temp like `PigTemp-f94354bd-Reset!` and prints once. Also `email_confirm: true` as a side effect — fixes both the "email unconfirmed" AND "forgotten password" cases in one call.
+
+Reads `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from `.env.local`. No new deps (uses `@supabase/supabase-js` already installed).
 
 ## Things that surprised me (would have saved time to know upfront)
 
