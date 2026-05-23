@@ -169,8 +169,11 @@ function EditFunderDialog({
   const [state, formAction] = useFormState(editFunderAction, INITIAL);
 
   useEffect(() => {
+    // Deps on whole `state` object (not primitive .success) so a second
+    // consecutive successful submit re-fires the close. Object.is(true, true)
+    // would short-circuit if we depended on the primitive.
     if (state.success) onOpenChange(false);
-  }, [state.success, onOpenChange]);
+  }, [state, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -243,8 +246,11 @@ function ArchiveFunderDialog({
   const [state, formAction] = useFormState(archiveFunderAction, INITIAL);
 
   useEffect(() => {
+    // Deps on whole `state` object (not primitive .success) so a second
+    // consecutive successful submit re-fires the close. Object.is(true, true)
+    // would short-circuit if we depended on the primitive.
     if (state.success) onOpenChange(false);
-  }, [state.success, onOpenChange]);
+  }, [state, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

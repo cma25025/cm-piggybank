@@ -7,6 +7,7 @@ import {
   EditFunderSchema,
   ArchiveFunderSchema,
 } from "@/lib/funders/schemas";
+import { escapeLike } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
 export type FunderActionState = {
@@ -100,7 +101,7 @@ export async function editFunderAction(
       .select("id")
       .eq("piggybank_id", existing.piggybank_id)
       .is("archived_at", null)
-      .ilike("display_name", parsed.data.display_name)
+      .ilike("display_name", escapeLike(parsed.data.display_name))
       .neq("id", parsed.data.funder_id)
       .maybeSingle();
     if (collision) {
@@ -176,7 +177,7 @@ export async function unarchiveFunderAction(
     .select("id")
     .eq("piggybank_id", funder.piggybank_id)
     .is("archived_at", null)
-    .ilike("display_name", funder.display_name)
+    .ilike("display_name", escapeLike(funder.display_name))
     .maybeSingle();
   if (collision) {
     return {

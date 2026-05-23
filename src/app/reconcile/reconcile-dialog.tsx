@@ -47,11 +47,14 @@ export function ReconcileDialog({ open, onOpenChange, currentTotalCents }: Props
   const diffCents = actualCents != null ? actualCents - currentTotalCents : null;
 
   useEffect(() => {
+    // Deps on the whole `state` (object identity), not primitive .success —
+    // a second consecutive success would otherwise short-circuit Object.is
+    // and the dialog wouldn't auto-close on subsequent submits.
     if (state.success) {
       onOpenChange(false);
       setActualStr("");
     }
-  }, [state.success, onOpenChange]);
+  }, [state, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

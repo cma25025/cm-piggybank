@@ -37,11 +37,13 @@ export function VoidButton({ transactionId, isVoided, rowSummary }: Props) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useFormState(voidTransactionAction, INITIAL);
 
-  // Close the dialog after a successful void. Done in an effect (not during
-  // render) to avoid React's setState-during-render warning.
+  // Close the dialog after a successful void. Deps on the whole `state`
+  // object (not primitive `state.success`) so a second consecutive success
+  // re-fires the effect — primitives short-circuit Object.is(true, true).
+  // useFormState returns a new object reference per action call.
   useEffect(() => {
     if (state.success) setOpen(false);
-  }, [state.success]);
+  }, [state]);
 
   if (isVoided) {
     return (

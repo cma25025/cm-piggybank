@@ -41,6 +41,7 @@ function ActivityRow({ row }: { row: RecentActivityRow }) {
   const title = pickTitle(row);
   const meta = pickMeta(row);
   const positive = row.signedAmountCents > 0;
+  const zero = row.signedAmountCents === 0;
   const voided = row.voidedAt != null;
 
   return (
@@ -57,10 +58,17 @@ function ActivityRow({ row }: { row: RecentActivityRow }) {
       <div
         className={
           "font-data font-semibold tabular-nums tnum text-sm " +
-          (voided ? "line-through text-ink-muted" : positive ? "text-spend" : "text-ink")
+          (voided
+            ? "line-through text-ink-muted"
+            : zero
+              ? "text-ink-muted"
+              : positive
+                ? "text-spend"
+                : "text-ink")
         }
       >
-        {positive ? "+" : "−"} {formatCents(Math.abs(row.signedAmountCents))}
+        {zero ? "" : positive ? "+ " : "− "}
+        {formatCents(Math.abs(row.signedAmountCents))}
       </div>
     </li>
   );

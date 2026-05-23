@@ -32,8 +32,11 @@ export function AddFunderButton() {
   const [state, formAction] = useFormState(addFunderAction, INITIAL);
 
   useEffect(() => {
+    // Deps on whole `state` (object identity), not primitive .success —
+    // a second consecutive success would otherwise short-circuit Object.is
+    // and the dialog wouldn't auto-close on subsequent submits.
     if (state.success) setOpen(false);
-  }, [state.success]);
+  }, [state]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
