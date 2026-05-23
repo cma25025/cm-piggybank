@@ -1,7 +1,20 @@
 # Next Session — Handoff for the Next Claude Code
 
-**Last updated:** 2026-05-22 — salvaged divergent branch (49 tests, schema fixes, Spend UX revamp)
-**Current state:** Phases 0–7 shipped + parallel-branch salvage applied. Production on Vercel (auto-deploys). Schema live in Supabase (9 migrations). 49 vitest cases passing (up from 15). Phase 8 + 9 specs in `docs/PHASE-6-9-SPEC.md`. Post-v1 roadmap in `docs/DISCOVERY-ROADMAP.md`. Salvage analysis in `docs/BRANCH-COMPARISON.md`.
+**Last updated:** 2026-05-22 — 🎉 **v1 COMPLETE** (Phases 0–9 shipped) + live-DB integration test harness
+**Current state:** All 9 phases of v1 plan live on production Vercel. 9 Supabase migrations applied. 62 unit tests passing + 8 integration tests ready (skip until `SUPABASE_SERVICE_ROLE_KEY` is in `.env.local`). Post-v1 roadmap in `docs/DISCOVERY-ROADMAP.md` — recommended next is **posture B (Wait-a-Week + digest prompts)** from that doc.
+
+## TL;DR (updated)
+
+Caretaker can sign up → onboard → manage three buckets and subs → add money / log spends / void → reconcile weekly → print Sunday digest → edit settings → export JSON → soft-delete. The whole product loop works end-to-end.
+
+What's NOT in v1 (deferred to v1.1+, see DISCOVERY-ROADMAP.md):
+- Wait-a-Week list for big purchases
+- Caretaker charity match on Give withdrawals
+- Quarterly Give ceremony
+- Owner UI (kid-facing)
+- Real banking rails (Stripe Issuing)
+- Multi-child households
+- Multi-funder authentication
 
 ---
 
@@ -15,28 +28,24 @@ A working v1 beta of CM Piggybank is on `main`. ~6,500 lines TS/TSX, 19 routes, 
 
 | Layer | State |
 |---|---|
-| **GitHub** | `cma25025/cm-piggybank` main, 11 commits ahead of original v0 |
+| **GitHub** | `cma25025/cm-piggybank` main, 30+ commits ahead of original v0; latest `b90c000` |
 | **Vercel** | Auto-deploys on push; project `cm-piggybank` (`prj_ivgoHOYF2cSqYazxECU7Th0SBvQ7`) |
-| **Supabase** | Project `supabase-fulvous-arrow` (ref `scuxpypcxwlyyfgovncf`), all 3 migrations applied |
-| **Local dev** | `npm run dev` boots; `npm test` passes (15/15 distribution math) |
+| **Supabase** | Project `supabase-fulvous-arrow` (ref `scuxpypcxwlyyfgovncf`), 9 migrations applied |
+| **Local dev** | `npm run dev` boots; `npm test` passes (62/62 unit); `npm run test:integration` ready (8 cases, skip without service-role key) |
 | **CLI auth** | Supabase CLI logged in via PAT (rotate the one in transcript before public release) |
 
-Recent commits (oldest → newest):
+Recent commits (latest 10):
 ```
-58dec31  Phase 0: teardown + tooling install
-eb77d1b  Phase 1: v1 schema + RLS + triggers + RPCs + distribution tests
-8144d1e  Phase 1.5: fix audit P0s in v1 schema
-d24a911  Phase 2: auth + password reset + protected routes
-42213e7  Phase 2: auth + password reset + protected routes  (dup commit, msg rewrite)
-107676e  Phase 2.5: fix audit P0s + critical P1s in auth flow
-c719fa2  Phase 3: onboarding wizard (4 steps with Y-fork)
-123957f  Phase 4: app shell + dashboard slots + buckets + activity + coming-soon
-65f3162  Phase 4.5: fix activity 4-row deposit rendering + sub-management type
-da86900  Phase 5: Add Money + Log Spend + Void
-fdbce4a  Append Phase 5 self-review findings to polish-todo
-79386f7  Phase 5 hotfix: spend FOR-UPDATE RPC + void useEffect + timezone fix
-c0a5d02  Add NEXT-SESSION.md handoff + fix landing page CTA
-[next]   Phase 5.6: void lineage column + activity filter + re-audit small fixes
+b90c000  Phase 9: Settings + JSON export + soft-delete UI — v1 COMPLETE
+9cdee22  Phase 8: Sunday digest (Sun-Sat week, print-ready, dashboard CTA)
+717fea0  Live-DB integration test harness — 4 test files, 8 cases
+d2b2b9d  Update NEXT-SESSION.md with salvage state
+9316fa5  Salvage 3/3: Spend UX revamp — bucket-first log-spend, optional sub
+801e618  Salvage 2/3: schema bug fixes + dialog effect deps + zero-diff render
+f22211c  Salvage 1/3: cherry-pick pure helpers + 49 vitest cases
+5701a1c  Branch comparison doc — divergent claude/ branch analysis
+7d814b0  Update NEXT-SESSION.md next-session recommendations
+26f55e6  Phase 6 + 7 audit fixes + NEXT-SESSION update
 ```
 
 ---
@@ -51,7 +60,7 @@ npm run dev
 # → http://localhost:3000/dashboard
 ```
 
-**Production:** check the Vercel dashboard for the active prod URL (likely `https://cm-piggybank.vercel.app` or a preview alias). GitHub Deployments tab shows the latest production deploy hash; it should match `79386f7`.
+**Production:** check the Vercel dashboard for the active prod URL (likely `https://cm-piggybank.vercel.app` or a preview alias). GitHub Deployments tab shows the latest production deploy hash; it should match `b90c000`.
 
 **Manual Supabase steps that MUST be done first** (otherwise signup silently fails to log you in):
 
