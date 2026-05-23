@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth/get-user";
 import { AppShell } from "@/components/layout/app-shell";
 import { createClient } from "@/lib/supabase/server";
 import { formatCents, cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { SubManagement } from "./sub-management";
 
 const VALID_KINDS = new Set(["spend", "save", "share"]);
@@ -56,16 +57,19 @@ export default async function BucketPage({
         <Link href="/dashboard" className="text-sm text-ink-muted hover:text-ink">
           ← Dashboard
         </Link>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center text-2xl", meta.soft)}>
             {meta.emoji}
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <h1 className={cn("font-display text-3xl font-bold", meta.color)}>{meta.label}</h1>
             <div className="font-display font-bold text-2xl tnum">
               {formatCents(bucket.balance_cents ?? 0)}
             </div>
           </div>
+          <Button asChild>
+            <Link href={`/log-spend?bucket=${bucketKind}`}>− Log spend</Link>
+          </Button>
         </div>
 
         <SubManagement

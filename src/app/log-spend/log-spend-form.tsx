@@ -5,19 +5,17 @@ import { useFormState, useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatCents } from "@/lib/utils";
+import { cn, formatCents } from "@/lib/utils";
 import { logSpendAction, type LogSpendState } from "./actions";
 
 /**
- * Return "YYYY-MM-DDTHH:MM" for the current moment, formatted in the
- * BROWSER's local timezone (not UTC). The naive datetime-local input
- * displays whatever string you give it as local time, so feeding it
- * UTC-suffixed values causes a timezone-shift bug.
+ * "YYYY-MM-DDTHH:MM" for now() in the BROWSER's local tz. datetime-local
+ * displays whatever string you give it as local time; UTC suffix causes
+ * a timezone-shift bug.
  */
 function nowLocalForInput(): string {
   const d = new Date();
   const offsetMin = d.getTimezoneOffset();
-  // Shift to local, then drop seconds + tz suffix to fit datetime-local format
   return new Date(d.getTime() - offsetMin * 60_000).toISOString().slice(0, 16);
 }
 
@@ -28,44 +26,42 @@ interface Sub {
   displayName: string;
   emoji: string;
   balanceCents: number;
-  bucketKind: "spend" | "save" | "share";
 }
 
-function SubmitButton() {
+interface Props {
+  bucketId: string;
+  bucketKind: "spend" | "save" | "share";
+  bucketBalanceCents: number;
+  subs: Sub[];
+}
+
+const BUCKET_LABEL: Record<Props["bucketKind"], string> = {
+  spend: "Spend",
+  save: "Save",
+  share: "Share",
+};
+
+function SubmitButton({ kind }: { kind: Props["bucketKind"] }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending} className="w-full">
-      {pending ? "Recording..." : "Log spend"}
+      {pending ? "Recording..." : `Log spend from ${BUCKET_LABEL[kind]}`}
     </Button>
   );
 }
 
-export function LogSpendForm({ subs }: { subs: Sub[] }) {
+export function LogSpendForm({ bucketId, bucketKind, bucketBalanceCents, subs }: Props) {
   const [state, formAction] = useFormState(logSpendAction, INITIAL);
   const [whenLocal, setWhenLocal] = useState(nowLocalForInput);
+  const [subId, setSubId] = useState<string | "">("");
 
-  // Convert the local datetime string to a UTC ISO string for submission.
-  // Server's `new Date(iso)` will parse it correctly regardless of server
-  // timezone. Without this, a backdated spend was off by the user's UTC
-  // offset (server is UTC on Vercel; "yesterday 6pm EDT" got stored as UTC).
+  // Convert local datetime string to a UTC ISO string for the server.
   const occurredAtISO = whenLocal ? new Date(whenLocal).toISOString() : "";
-
-  const byBucket = {
-    spend: subs.filter((s) => s.bucketKind === "spend"),
-    save: subs.filter((s) => s.bucketKind === "save"),
-    share: subs.filter((s) => s.bucketKind === "share"),
-  };
-
-  if (subs.length === 0) {
-    return (
-      <p className="text-sm text-ink-muted">
-        No subcategories yet. Add one from a bucket page before logging spends.
-      </p>
-    );
-  }
 
   return (
     <form action={formAction} className="space-y-5">
+      <input type="hidden" name="bucket_id" value={bucketId} />
+
       <div className="space-y-2">
         <Label htmlFor="amount_dollars">Amount</Label>
         <div className="relative">
@@ -82,42 +78,51 @@ export function LogSpendForm({ subs }: { subs: Sub[] }) {
             autoFocus
           />
         </div>
+        <p className="text-xs text-ink-muted">
+          Available in {BUCKET_LABEL[bucketKind]}: {formatCents(bucketBalanceCents)}
+        </p>
         {state.fieldErrors?.amount_dollars ? (
           <p className="text-sm text-destructive">{state.fieldErrors.amount_dollars}</p>
         ) : null}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="subcategory_id">From which subcategory?</Label>
-        <select
-          id="subcategory_id"
-          name="subcategory_id"
-          required
-          defaultValue=""
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-        >
-          <option value="" disabled>
-            Pick one…
-          </option>
-          {(["spend", "save", "share"] as const).map((k) =>
-            byBucket[k].length > 0 ? (
-              <optgroup key={k} label={k[0].toUpperCase() + k.slice(1)}>
-                {byBucket[k].map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.emoji} {s.displayName} — {formatCents(s.balanceCents)}
-                  </option>
-                ))}
-              </optgroup>
-            ) : null,
-          )}
-        </select>
+      <fieldset className="space-y-2">
+        <div className="flex items-baseline justify-between gap-2">
+          <legend className="text-sm font-medium">Toward a goal? (optional)</legend>
+          {subs.length === 0 ? (
+            <span className="text-[11px] text-ink-muted">
+              No goals yet in {BUCKET_LABEL[bucketKind]}
+            </span>
+          ) : null}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <SubTile
+            id=""
+            selected={subId === ""}
+            onSelect={setSubId}
+            label="No goal — just the category"
+            emoji="·"
+          />
+          {subs.map((s) => (
+            <SubTile
+              key={s.id}
+              id={s.id}
+              selected={subId === s.id}
+              onSelect={setSubId}
+              label={s.displayName}
+              emoji={s.emoji}
+              balanceCents={s.balanceCents}
+            />
+          ))}
+        </div>
+        <input type="hidden" name="subcategory_id" value={subId} />
         {state.fieldErrors?.subcategory_id ? (
           <p className="text-sm text-destructive">{state.fieldErrors.subcategory_id}</p>
         ) : null}
-      </div>
+      </fieldset>
 
       <div className="space-y-2">
-        <Label htmlFor="note">Note</Label>
+        <Label htmlFor="note">Note (optional)</Label>
         <Input id="note" name="note" type="text" placeholder="e.g. ice cream with friends" maxLength={280} />
       </div>
 
@@ -129,7 +134,6 @@ export function LogSpendForm({ subs }: { subs: Sub[] }) {
           value={whenLocal}
           onChange={(e) => setWhenLocal(e.target.value)}
         />
-        {/* Hidden field carries the UTC-ISO so the server reads an unambiguous instant. */}
         <input type="hidden" name="occurred_at" value={occurredAtISO} />
       </div>
 
@@ -139,7 +143,49 @@ export function LogSpendForm({ subs }: { subs: Sub[] }) {
         </p>
       ) : null}
 
-      <SubmitButton />
+      <SubmitButton kind={bucketKind} />
     </form>
+  );
+}
+
+function SubTile({
+  id,
+  selected,
+  onSelect,
+  label,
+  emoji,
+  balanceCents,
+}: {
+  id: string;
+  selected: boolean;
+  onSelect: (id: string) => void;
+  label: string;
+  emoji: string;
+  balanceCents?: number;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(id)}
+      className={cn(
+        "rounded-xl border-2 px-3 py-2 text-left flex items-center gap-2 transition",
+        selected
+          ? "bg-brand-soft border-brand"
+          : "bg-card border-line-soft hover:border-line",
+      )}
+      aria-pressed={selected}
+    >
+      <span className="text-lg shrink-0" aria-hidden>
+        {emoji}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium truncate">{label}</span>
+        {balanceCents != null ? (
+          <span className="block text-[11px] text-ink-muted tnum">
+            {formatCents(balanceCents)}
+          </span>
+        ) : null}
+      </span>
+    </button>
   );
 }

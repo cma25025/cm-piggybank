@@ -697,10 +697,11 @@ export type Database = {
       }
       log_spend: {
         Args: {
-          p_amount_cents: number
+          p_amount_cents?: number
+          p_bucket_id: string
           p_note?: string
           p_occurred_at?: string
-          p_subcategory_id: string
+          p_subcategory_id?: string
         }
         Returns: string
       }
