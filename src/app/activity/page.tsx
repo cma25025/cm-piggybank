@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { formatCents, cn } from "@/lib/utils";
 import Link from "next/link";
 import { VoidButton } from "./void-button";
+import { pickActivityEmoji } from "@/lib/activity/emoji";
 
 interface SearchParams {
   bucket?: string;
@@ -125,7 +126,12 @@ export default async function ActivityPage({
               return (
                 <li key={r.id} className="p-4 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-line-soft flex items-center justify-center text-lg shrink-0">
-                    {sub?.emoji ?? (r.kind === "deposit" ? "💵" : r.kind === "spend" ? "🛒" : r.kind === "adjustment" ? "🔧" : "·")}
+                    {pickActivityEmoji({
+                      kind: r.kind as string,
+                      subEmoji: sub?.emoji ?? null,
+                      sourceType: r.source_type,
+                      note: r.note,
+                    })}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className={cn("text-sm font-medium truncate", voided && "line-through text-ink-muted")}>

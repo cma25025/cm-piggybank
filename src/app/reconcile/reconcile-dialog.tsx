@@ -75,14 +75,14 @@ export function ReconcileDialog({ open, onOpenChange, currentTotalCents }: Props
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="actual_total_dollars">Actual total in the jar</Label>
+            <Label htmlFor="actual_dollars">Actual total in the jar</Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted">
                 $
               </span>
               <Input
-                id="actual_total_dollars"
-                name="actual_total_dollars"
+                id="actual_dollars"
+                name="actual_dollars"
                 type="number"
                 step="0.01"
                 min="0"
@@ -94,9 +94,9 @@ export function ReconcileDialog({ open, onOpenChange, currentTotalCents }: Props
                 autoFocus
               />
             </div>
-            {state.fieldErrors?.actual_total_dollars ? (
+            {state.fieldErrors?.actual_dollars ? (
               <p className="text-sm text-destructive">
-                {state.fieldErrors.actual_total_dollars}
+                {state.fieldErrors.actual_dollars}
               </p>
             ) : null}
           </div>

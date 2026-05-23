@@ -21,7 +21,7 @@ export async function recordReconciliationAction(
   formData: FormData,
 ): Promise<ReconcileState> {
   const parsed = ReconcileSchema.safeParse({
-    actual_total_dollars: formData.get("actual_total_dollars"),
+    actual_dollars: formData.get("actual_dollars"),
     reason: formData.get("reason"),
     note: formData.get("note"),
   });
@@ -63,7 +63,7 @@ export async function recordReconciliationAction(
     );
   }
 
-  const actualCents = dollarsToCents(parsed.data.actual_total_dollars);
+  const actualCents = dollarsToCents(parsed.data.actual_dollars);
   const diffCents = actualCents - (pb.total_balance_cents ?? 0);
 
   const label = reasonLabel(parsed.data.reason);

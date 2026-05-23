@@ -1,5 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { aggregateTopFunders, type TopFunder } from "./aggregate";
+export type { TopFunder } from "./aggregate";
 
 export interface FunderStatsRow {
   funder_id: string;
@@ -60,22 +62,18 @@ export async function getFunderHistory(
   return (data ?? []) as FunderHistoryRow[];
 }
 
-export interface TopFunder {
-  funderId: string;
-  displayName: string;
-  totalCents: number;
-}
-
 /**
  * Top N funders in the trailing 30 days. Aggregates parent deposits only
- * (no triple-count from children). Returns empty array if no deposits.
- * Cached for a single render via React.cache so the dashboard's FunderWidget
- * doesn't refetch when the parent re-renders.
+ * (no triple-count from children). Excludes voided deposits at the query
+ * layer (also enforced in v_funder_stats since Phase 6.5 salvage).
+ * Returns empty array if no deposits. Cached for a single render via
+ * React.cache so the dashboard's FunderWidget doesn't refetch when the
+ * parent re-renders.
  *
- * Uses a rolling 30-day window instead of "this calendar month" so the
- * widget doesn't blink to empty at month boundaries (the UTC-month variant
- * showed nothing for PST caretakers from 5pm local on the last day of the
- * month until midnight UTC).
+ * Rolling 30-day window (not "this calendar month") so the widget doesn't
+ * blink to empty at month boundaries (the UTC-month variant showed nothing
+ * for PST caretakers from 5pm local on the last day of the month until
+ * midnight UTC).
  */
 export const getTopFundersThisMonth = cache(
   async (piggybankId: string, limit: number = 3): Promise<TopFunder[]> => {
@@ -88,31 +86,11 @@ export const getTopFundersThisMonth = cache(
       .eq("piggybank_id", piggybankId)
       .eq("kind", "deposit")
       .is("parent_id", null)
+      .is("voided_at", null)
       .gte("occurred_at", since.toISOString())
       .not("funder_id", "is", null);
 
-    if (!data || data.length === 0) return [];
-
-    const totals = new Map<string, { name: string; total: number }>();
-    for (const row of data) {
-      if (!row.funder_id) continue;
-      const fObj = Array.isArray(row.funder) ? row.funder[0] : row.funder;
-      const name = (fObj as { display_name?: string } | null)?.display_name ?? "Unknown";
-      const prev = totals.get(row.funder_id);
-      totals.set(row.funder_id, {
-        name,
-        total: (prev?.total ?? 0) + (row.amount_cents ?? 0),
-      });
-    }
-
-    return Array.from(totals.entries())
-      .map(([funderId, v]) => ({
-        funderId,
-        displayName: v.name,
-        totalCents: v.total,
-      }))
-      .sort((a, b) => b.totalCents - a.totalCents)
-      .slice(0, limit);
+    return aggregateTopFunders(data ?? [], limit);
   },
 );
 

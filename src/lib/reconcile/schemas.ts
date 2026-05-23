@@ -11,7 +11,9 @@ export const RECONCILE_REASONS = [
 const REASON = z.enum(["rounding", "cash_missing", "found_cash", "miscount", "other"]);
 
 export const ReconcileSchema = z.object({
-  actual_total_dollars: z.coerce
+  // Renamed from actual_total_dollars to actual_dollars in salvage pass
+  // (matches the test fixtures cherry-picked from the divergent branch).
+  actual_dollars: z.coerce
     .number()
     .min(0, "Must be 0 or more")
     .max(1_000_000, "Way too much"),

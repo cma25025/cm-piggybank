@@ -1,18 +1,11 @@
 import Link from "next/link";
 import type { RecentActivityRow } from "@/lib/dashboard/queries";
 import { formatCents } from "@/lib/utils";
+import { pickActivityEmoji } from "@/lib/activity/emoji";
 
 interface RecentActivityProps {
   rows: RecentActivityRow[];
 }
-
-const SOURCE_EMOJI: Record<string, string> = {
-  allowance: "💵",
-  birthday: "🎁",
-  chores: "🧹",
-  gift: "🎀",
-  other: "💵",
-};
 
 export function RecentActivity({ rows }: RecentActivityProps) {
   return (
@@ -39,7 +32,12 @@ export function RecentActivity({ rows }: RecentActivityProps) {
 }
 
 function ActivityRow({ row }: { row: RecentActivityRow }) {
-  const emoji = pickEmoji(row);
+  const emoji = pickActivityEmoji({
+    kind: row.kind,
+    subEmoji: row.subEmoji,
+    sourceType: row.sourceType,
+    note: row.note,
+  });
   const title = pickTitle(row);
   const meta = pickMeta(row);
   const positive = row.signedAmountCents > 0;
@@ -68,14 +66,6 @@ function ActivityRow({ row }: { row: RecentActivityRow }) {
   );
 }
 
-function pickEmoji(r: RecentActivityRow): string {
-  if (r.subEmoji) return r.subEmoji;
-  if (r.kind === "deposit") return SOURCE_EMOJI[r.sourceType ?? "other"] ?? "💵";
-  if (r.kind === "interest") return "📈";
-  if (r.kind === "adjustment") return r.note?.startsWith("Reconciled:") ? "⚖️" : "🔧";
-  if (r.kind === "opening_balance") return "🏦";
-  return "·";
-}
 
 function pickTitle(r: RecentActivityRow): string {
   if (r.note) return r.note;
