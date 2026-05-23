@@ -1,7 +1,7 @@
 # Next Session — Handoff for the Next Claude Code
 
-**Last updated:** 2026-05-20 — Phases 6 + 7 shipped, bucket colors swapped, discovery roadmap landed
-**Current state:** Phases 0–7 shipped. Production on Vercel (auto-deploys). Schema live in Supabase (7 migrations). Phase 8 + 9 specs ready in `docs/PHASE-6-9-SPEC.md`. Post-v1 discovery roadmap (informed by Ron Lieber's *The Opposite of Spoiled*) in `docs/DISCOVERY-ROADMAP.md`.
+**Last updated:** 2026-05-22 — salvaged divergent branch (49 tests, schema fixes, Spend UX revamp)
+**Current state:** Phases 0–7 shipped + parallel-branch salvage applied. Production on Vercel (auto-deploys). Schema live in Supabase (9 migrations). 49 vitest cases passing (up from 15). Phase 8 + 9 specs in `docs/PHASE-6-9-SPEC.md`. Post-v1 roadmap in `docs/DISCOVERY-ROADMAP.md`. Salvage analysis in `docs/BRANCH-COMPARISON.md`.
 
 ---
 
@@ -120,6 +120,16 @@ Paste this into a new session:
 - `scripts/reset-password.mjs` admin tool (called once for first beta caretaker)
 - Dev-mode auth error verbosity (`NODE_ENV=development` shows raw Supabase errors)
 - Landing page (/) rewrite — no longer the misleading "Phase 0 scaffold"
+
+**Shipped 2026-05-22 (divergent-branch salvage):**
+- **49 Vitest cases passing** (was 15) — closes the carry-forward Vitest P0
+- `src/lib/activity/emoji.ts`, `src/lib/funders/aggregate.ts`, `src/lib/reconcile/staleness.ts` — pure helpers extracted with tests
+- `v_funder_stats` view now filters voided deposits (was inflating funder totals)
+- `find_or_create_funder` backfills relationship on existing-funder re-add
+- `escapeLike()` helper for safe ILIKE patterns ("100% Grandma" no longer false-positives)
+- Dialog `useEffect` deps fixed across 4 sites (second consecutive submit now closes dialog)
+- Zero-diff $0.00 rendering — drops sign + uses muted text instead of "− $0.00"
+- **Spend UX revamp:** bucket-first log-spend tiles, optional sub ("No goal — just the category"), gates on bucket.balance (not sub). PRD §5.3 "sub-amounts tally to bucket total" intentionally loosened — see commit `9316fa5` body
 
 Detailed specs are in **`docs/PHASE-6-9-SPEC.md`** — concrete file lists, schema queries, dashboard slot integration, acceptance criteria, footguns. Read it before starting Phase 6.
 
