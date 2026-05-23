@@ -75,8 +75,13 @@ describe.skipIf(!hasIntegrationEnv())("balance invariants under random ops", () 
         }
       }
 
-      // INVARIANT: each bucket's balance_cents = sum of child transactions
-      // (with bucket_id = bucket.id, voided_at IS NULL).
+      // INVARIANT: each bucket's balance_cents = sum of signed amounts of
+      // ALL transactions in that bucket. The balance trigger fires on every
+      // INSERT/UPDATE/DELETE and does NOT know about voided_at — when a
+      // void writes a reversing adjustment, the original stays (with
+      // voided_at set) and the adjustment subtracts/adds the opposite.
+      // The bucket.balance reflects both. So our expected sum must include
+      // voided rows too (they cancel out with their reversals naturally).
       for (const bucketId of bucketIds) {
         const { data: bucket } = await pb.client
           .from("bucket")
@@ -86,8 +91,7 @@ describe.skipIf(!hasIntegrationEnv())("balance invariants under random ops", () 
         const { data: txns } = await pb.client
           .from("transaction")
           .select("kind, amount_cents")
-          .eq("bucket_id", bucketId)
-          .is("voided_at", null);
+          .eq("bucket_id", bucketId);
 
         const expected = (txns ?? []).reduce((acc, t) => {
           const sign = t.kind === "spend" ? -1 : 1;
